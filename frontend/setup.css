@@ -1,0 +1,82 @@
+#setup-resume.selected {
+  color: #26ed79 !important;
+}
+#setup-resume {
+  color: #ff4444 !important;
+}
+/* Session Setup Overlay - Minimal & Futuristic */
+#setup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+#setup-overlay.hidden {
+  display: none;
+}
+
+#setup-status {
+  min-height: 24px;
+  font-size: 13px;
+  color: #aaa;
+  margin-bottom: 10px;
+}
+
+#btn-start-session {
+  background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+  border: none;
+  border-radius: 10px;
+  padding: 16px 32px;
+  color: #000;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.3);
+}
+
+#btn-start-session:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 212, 255, 0.4);
+}
+
+#btn-start-session:active {
+  transform: translateY(0);
+}
+
+#btn-start-session:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#setup-resume::file-selector-button {
+  background: transparent;
+  border: none;
+  color: rgba(40, 234, 248, 0.938);
+  font-size: 13px;
+  padding: 0 8px;
+  margin: 0;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: color 0.2s;
+  box-shadow: none;
+}
+
+#setup-resume::file-selector-button:hover {
+  color: rgba(44, 252, 235, 0.99);
+  background: transparent;
+}

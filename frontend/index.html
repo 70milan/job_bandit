@@ -1,0 +1,890 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Codevode</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <link rel="stylesheet" href="setup.css">
+  <style>
+    body {
+      background-color: rgba(30, 30, 30, 0.95);
+      color: #ffffff;
+      font-family: "Segoe UI", Arial, sans-serif;
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    body.mini {
+      background-color: transparent;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.mini #main-container {
+      display: none;
+    }
+
+    body.mini #mini-icon {
+      display: flex;
+    }
+
+    #mini-icon {
+      display: none;
+      width: 50px;
+      height: 50px;
+      background-color: #00bfff;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 10px #00bfff;
+      cursor: pointer;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.7);
+      }
+
+      70% {
+        box-shadow: 0 0 0 10px rgba(0, 191, 255, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(0, 191, 255, 0);
+      }
+    }
+
+    #main-container {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      padding: 15px;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    #controls {
+      flex: 1.75;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      flex: 1;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s;
+      background-color: rgba(255, 255, 255, 0.02);
+      color: #aaa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      letter-spacing: 0.3px;
+    }
+
+    .btn:hover {
+      background-color: rgba(255, 255, 255, 0.04);
+      border-color: rgba(0, 212, 255, 0.2);
+      color: #ddd;
+    }
+
+    .btn.active {
+      background-color: rgba(0, 212, 255, 0.15);
+      color: #00d4ff;
+      border-color: rgba(0, 212, 255, 0.5);
+      box-shadow: 0 0 12px rgba(0, 212, 255, 0.3), inset 0 0 8px rgba(0, 212, 255, 0.1);
+    }
+
+    .section {
+      flex: 5;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 10px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      transition: flex 0.3s ease;
+    }
+
+    .section.compact {
+      flex: 2;
+    }
+
+    .section.expanded {
+      flex: 8;
+    }
+
+    .section.maximized {
+      flex: 20;
+    }
+
+    .section.minimized {
+      flex: 1;
+    }
+
+    .section-header {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    #transcript-area {
+      color: #e6e6e6;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      user-select: text;
+      -webkit-user-select: text;
+      cursor: text;
+      flex: 1;
+      outline: none;
+      min-height: 50px;
+    }
+
+    #response-area {
+      color: #ffffff;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      text-align: left;
+      user-select: text;
+      -webkit-user-select: text;
+      cursor: text;
+      line-height: 1.4;
+      flex: 1;
+      min-height: 50px;
+      overflow-y: auto;
+      padding-bottom: 10px;
+    }
+
+    #response-area code {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      color: #ffa07a;
+      display: inline;
+    }
+
+    #response-area pre {
+      background-color: #1e1e1e;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 8px 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      white-space: pre;
+    }
+
+    #response-area pre code {
+      background-color: transparent;
+      padding: 0;
+      color: inherit;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.4;
+      display: block;
+    }
+
+    #status-bar {
+      flex: 0.6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #aaa;
+      padding: 0 5px;
+      flex-shrink: 0;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #555;
+    }
+
+    .dot.connected {
+      background-color: #00ff00;
+      box-shadow: 0 0 5px #00ff00;
+    }
+
+    .dot.error {
+      background-color: #ff0000;
+    }
+
+    /* Session buttons */
+    .session-btn-group {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .session-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background-color: rgba(255, 255, 255, 0.05);
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .session-btn:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #ddd;
+    }
+
+    .session-btn.active {
+      background-color: #28a745;
+      color: white;
+      border-color: #28a745;
+      box-shadow: 0 0 6px rgba(40, 167, 69, 0.5);
+    }
+
+    .session-btn.stopped {
+      background-color: #6c757d;
+      color: white;
+      border-color: #6c757d;
+      box-shadow: 0 0 6px rgba(108, 117, 125, 0.5);
+    }
+
+    .session-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #555;
+    }
+
+    .session-indicator.active {
+      background-color: #00ff00;
+      box-shadow: 0 0 4px #00ff00;
+      animation: blink 1s infinite;
+    }
+
+    .session-indicator.paused {
+      background-color: #ffaa00;
+      box-shadow: 0 0 4px #ffaa00;
+    }
+
+    @keyframes blink {
+
+      0%,
+      49%,
+      100% {
+        opacity: 1;
+      }
+
+      50%,
+      99% {
+        opacity: 0.3;
+      }
+
+    }
+  </style>
+</head>
+
+<body>
+  <style>
+    #close-btn {
+      position: absolute;
+      top: 8px;
+      right: 15px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10001;
+      color: rgba(255, 255, 255, 0.6);
+      transition: all 0.2s ease;
+    }
+
+    #close-btn:hover {
+      color: #ff5555;
+      background: rgba(255, 255, 255, 0.05);
+      transform: scale(1.1);
+    }
+  </style>
+  <div id="setup-overlay"
+    style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.6); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(3px);">
+    <div id="close-btn" title="Close App">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" style="cursor: pointer;">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </div>
+    <div
+      style="background: rgba(26, 26, 46, 0.95); padding: 32px; border-radius: 6px; border: 1px solid rgba(0, 212, 255, 0.4); box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);">
+      <form style="display: flex; flex-direction: column; gap: 20px; width: 320px; align-items: stretch;">
+        <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch;"><label
+            style="color: #66eaff; font-size: 15px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left;">Resume</label>
+          <div style="display: flex; align-items: center; gap: 10px;"><input type="file" id="setup-resume"
+              accept=".docx"
+              style="width: 100%; box-sizing: border-box; padding: 14px 0; border: none; border-bottom: 2px solid rgba(0, 212, 255, 0.4); background: transparent; color: #bffcff; font-size: 15px; cursor: pointer; appearance: none; -webkit-appearance: none; -moz-appearance: none;" />
+          </div>
+        </div>
+        <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch;"><label
+            style="color: #66eaff; font-size: 15px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left;">Job
+            Description</label><textarea id="setup-jobdesc"
+            style="width: 100%; box-sizing: border-box; padding: 12px 14px; border: 2px solid rgba(0, 212, 255, 0.4); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: #bffcff; font-family: 'Segoe UI', Arial; resize: vertical; height: 120px; font-size: 15px; outline: none;"
+            placeholder="Paste job description..."></textarea></div>
+        <div id="setup-status"
+          style="color: #66eaff; font-size: 13px; min-height: 16px; height: 16px; width: 100%; text-align: left;"></div>
+        <button id="btn-start-session"
+          style="width: 100%; box-sizing: border-box; padding: 16px 0; background: rgba(0, 212, 255, 0.18); border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 4px; color: #00d4ff; font-weight: 600; cursor: pointer; font-size: 16px; transition: all 0.2s; letter-spacing: 1px; text-transform: uppercase; margin-top: 6px;">Create
+          Session</button>
+      </form>
+    </div>
+  </div>
+  <div id="session-error-popup"
+    style="position: fixed; bottom: 20px; left: 20px; background: rgba(220, 50, 50, 0.15); border: 1px solid rgba(220, 50, 50, 0.4); border-radius: 3px; padding: 10px 14px; color: #ff6b6b; font-size: 10px; z-index: 10000; display: none; opacity: 0; transition: opacity 0.2s; pointer-events: none; max-width: 200px; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase;">
+    You need to start the session first</div>
+  <div id="mini-icon">🎙️</div>
+  <div id="main-container">
+    <div id="controls"><button id="btn-system" class="btn">System (Ctrl+R)</button><button id="btn-mic" class="btn">Mic
+        (Ctrl+M)</button><button id="btn-screen" class="btn">Screen (Ctrl+K)</button><button id="btn-generate"
+        class="btn">Process (Ctrl+G)</button>
+      <div id="session-timer"
+        style="padding: 10px 15px; background: rgba(0, 191, 255, 0.1); border-radius: 6px; border: 1px solid rgba(0, 191, 255, 0.3); color: #00bfff; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <span id="session-timer-dot" class="session-indicator"></span><span id="session-timer-text">2:00:00</span>
+      </div>
+      <div class="session-btn-group"><button id="btn-session-start" class="session-btn"
+          title="Start session timer"><span class="session-indicator"></span><span>Start</span></button><button
+          id="btn-session-stop" class="session-btn" title="Stop session timer"><span
+            class="session-indicator"></span><span>Stop</span></button><button id="btn-session-end" class="session-btn"
+          title="End session and reset"><span>End</span></button></div>
+    </div>
+    <div class="section" id="transcript-section">
+      <div class="section-header"><span>Live Transcript</span><span style="font-size: 10px; cursor: pointer;"
+          onclick="window.clearTranscript()">[Clear]</span></div>
+      <div id="transcript-area" contenteditable="true"></div>
+    </div>
+    <div class="section" id="response-section">
+      <div class="section-header"><span>AI Assistant</span><span style="font-size: 10px; cursor: pointer;"
+          onclick="navigator.clipboard.writeText(document.getElementById('response-area').innerText)">[Copy]</span>
+      </div>
+      <div id="response-area"></div>
+    </div>
+    <div id="status-bar">
+      <div class="status-indicator">
+        <div id="status-dot" class="dot"></div><span id="status-text">Ready</span>
+      </div>
+      <div style="display: flex; gap: 20px; align-items: center; font-size: 11px;">
+        <div style="display: flex; align-items: center; gap: 6px;"><span style="color: #666;">VOL:</span>
+          <div
+            style="width: 40px; height: 4px; background: rgba(255, 255, 255, 0.05); border-radius: 2px; position: relative; border: 1px solid rgba(255, 255, 255, 0.1);">
+            <div id="volume-bar"
+              style="height: 100%; background: #00d4ff; border-radius: 2px; width: 0%; transition: width 0.1s;"></div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div id="input-indicator-dot" class="dot"></div><span id="input-mode-text" style="color: #888;">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const { ipcRenderer } = require('electron');
+    const transcriptArea = document.getElementById('transcript-area');
+    const responseArea = document.getElementById('response-area');
+    const transcriptSection = document.getElementById('transcript-section');
+    const responseSection = document.getElementById('response-section');
+    const statusText = document.getElementById('status-text');
+    const statusDot = document.getElementById('status-dot');
+    const btnSystem = document.getElementById('btn-system');
+    const btnMic = document.getElementById('btn-mic');
+    const btnScreen = document.getElementById('btn-screen');
+    const btnGenerate = document.getElementById('btn-generate');
+
+    let socket = null;
+    let audioContext = null;
+    let processor = null;
+    let source = null;
+    let currentStream = null;
+    let activeMode = null;
+    let capturedScreenshot = null;
+    const SAMPLE_RATE = 24000;
+
+    function floatTo16BitPCM(float32Array) {
+      const buffer = new ArrayBuffer(float32Array.length * 2);
+      const view = new DataView(buffer);
+
+      for (let i = 0; i < float32Array.length; i++) {
+        let s = Math.max(-1, Math.min(1, float32Array[i]));
+        s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        view.setInt16(i * 2, s, true);
+      }
+
+      return buffer;
+    }
+
+    function base64EncodeAudio(float32Array) {
+      const pcmBuffer = floatTo16BitPCM(float32Array);
+      let binary = '';
+      const bytes = new Uint8Array(pcmBuffer);
+
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+
+      return window.btoa(binary);
+    }
+
+    async function getSystemAudioStream() {
+      try {
+        const sources = await ipcRenderer.invoke('GET_SOURCES', ['screen']);
+        console.log('Sources:', sources);
+        const source = sources.find(s => s.name === 'Entire Screen' || s.name === 'Screen 1') || sources[0];
+
+        if (!source) {
+          throw new Error('No screen source found. Available: ' + sources.map(s => s.name).join(', '));
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            mandatory: {
+              chromeMediaSource: 'desktop', chromeMediaSourceId: source.id
+            }
+          },
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop', chromeMediaSourceId: source.id
+            }
+          }
+        });
+        return stream;
+      } catch (e) {
+        console.error('System Audio Error:', e);
+        responseArea.innerText = `System Audio Error:\n${e.name}: ${e.message}\n\n(Check permissions?)`;
+        statusText.innerText = 'Sys Audio Error';
+        return null;
+      }
+    }
+
+    async function getMicAudioStream() {
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1, sampleRate: SAMPLE_RATE, echoCancellation: true, noiseSuppression: true
+          }
+        });
+      } catch (e) {
+        console.error('Mic Error:', e);
+        responseArea.innerText = `Mic Error:\n${e.name}: ${e.message}`;
+        statusText.innerText = 'Mic Error';
+        return null;
+      }
+    }
+
+    async function startCapture(mode) {
+      if (activeMode === mode) {
+        stopCapture();
+        return;
+      }
+
+      if (activeMode) {
+        stopCapture();
+        await new Promise(r => setTimeout(r, 100));
+      }
+
+      try {
+        statusText.innerText = 'Connecting...';
+        let stream = null;
+
+        if (mode === 'system') {
+          stream = await getSystemAudioStream();
+        } else {
+          stream = await getMicAudioStream();
+        }
+
+        if (!stream) {
+          statusText.innerText = 'Stream Failed';
+          return;
+        }
+
+        currentStream = stream;
+        socket = new WebSocket('ws://127.0.0.1:5050/realtime');
+
+        socket.onopen = () => {
+          console.log('WebSocket Connected');
+          statusText.innerText = mode === 'system' ? 'Capturing System...' : 'Capturing Mic...';
+          statusDot.className = 'dot connected';
+          activeMode = mode;
+          updateButtons();
+
+          audioContext = new (window.AudioContext || window.webkitAudioContext)({
+            sampleRate: SAMPLE_RATE
+          });
+          source = audioContext.createMediaStreamSource(currentStream);
+          processor = audioContext.createScriptProcessor(1024, 1, 1);
+
+          processor.onaudioprocess = (e) => {
+            if (!socket || socket.readyState !== WebSocket.OPEN) return;
+            const inputData = e.inputBuffer.getChannelData(0);
+
+            let sum = 0;
+            for (let i = 0; i < inputData.length; i++) {
+              sum += inputData[i] * inputData[i];
+            }
+
+            const rms = Math.sqrt(sum / inputData.length);
+            const volume = Math.min(100, Math.round(rms * 1000));
+
+            // Update volume bar and input mode indicator
+            const volumeBar = document.getElementById('volume-bar');
+            const inputModeDot = document.getElementById('input-indicator-dot');
+            const inputModeText = document.getElementById('input-mode-text');
+
+            if (volumeBar) {
+              volumeBar.style.width = (volume / 100) * 100 + '%';
+            }
+
+            if (inputModeDot) {
+              if (activeMode === 'system') {
+                inputModeDot.className = 'dot connected';
+                inputModeText.innerText = 'System';
+                inputModeText.style.color = '#00d4ff';
+              } else if (activeMode === 'mic') {
+                inputModeDot.className = 'dot connected';
+                inputModeText.innerText = 'Mic';
+                inputModeText.style.color = '#00d4ff';
+              }
+            }
+
+            socket.send(base64EncodeAudio(inputData));
+          };
+
+          source.connect(processor);
+          processor.connect(audioContext.destination);
+        };
+
+        socket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === 'transcript') {
+            transcriptArea.innerText += data.text;
+            transcriptArea.scrollTop = transcriptArea.scrollHeight;
+          }
+        };
+
+        socket.onerror = (err) => {
+          console.error('WebSocket Error:', err);
+          statusText.innerText = 'WS Error';
+          statusDot.className = 'dot error';
+          responseArea.innerText += '\n(WebSocket Error)';
+        };
+
+        socket.onclose = () => {
+          console.log('WebSocket Closed');
+          if (activeMode) stopCapture();
+        };
+
+      } catch (err) {
+        console.error('Start Error:', err);
+        statusText.innerText = 'Error';
+        responseArea.innerText = `Start Error:\n${err.message}`;
+        stopCapture();
+      }
+    }
+
+    function stopCapture() {
+      if (processor) {
+        processor.disconnect();
+        processor = null;
+      }
+      if (source) {
+        source.disconnect();
+        source = null;
+      }
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+        currentStream = null;
+      }
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+      }
+      if (socket) {
+        socket.close();
+        socket = null;
+      }
+
+      activeMode = null;
+      statusText.innerText = 'Ready';
+      statusDot.className = 'dot';
+
+      // Reset input mode indicator
+      const inputModeDot = document.getElementById('input-indicator-dot');
+      const inputModeText = document.getElementById('input-mode-text');
+      const volumeBar = document.getElementById('volume-bar');
+      if (inputModeDot) inputModeDot.className = 'dot';
+
+      if (inputModeText) {
+        inputModeText.innerText = '--';
+        inputModeText.style.color = '#888';
+      }
+
+      if (volumeBar) volumeBar.style.width = '0%';
+
+      updateButtons();
+    }
+
+    function updateButtons() {
+      btnSystem.className = 'btn';
+      btnMic.className = 'btn';
+
+      if (activeMode === 'system') {
+        btnSystem.classList.add('active');
+      } else if (activeMode === 'mic') {
+        btnMic.classList.add('active');
+      }
+    }
+
+    btnSystem.onclick = () => {
+      if (!window.isSessionActive) {
+        window.showSessionError();
+        return;
+      }
+      startCapture('system');
+    };
+
+    btnMic.onclick = () => {
+      if (!window.isSessionActive) {
+        window.showSessionError();
+        return;
+      }
+      startCapture('mic');
+    };
+
+    btnScreen.onclick = async () => {
+      if (!window.isSessionActive) {
+        window.showSessionError();
+        return;
+      }
+
+      try {
+        statusText.innerText = 'Capturing screen...';
+        const sources = await ipcRenderer.invoke('GET_SOURCES', ['screen']);
+        const source = sources.find(s => s.name === 'Entire Screen' || s.name === 'Screen 1') || sources[0];
+
+        if (!source) {
+          throw new Error('No screen source found');
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop',
+              chromeMediaSourceId: source.id,
+              maxWidth: 1920,
+              maxHeight: 1080
+            }
+          }
+        });
+
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
+
+        await new Promise(resolve => {
+          video.onloadedmetadata = () => {
+            video.width = video.videoWidth;
+            video.height = video.videoHeight;
+            resolve();
+          };
+        });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+
+        capturedScreenshot = canvas.toDataURL('image/jpeg', 0.8);
+
+        stream.getTracks().forEach(track => track.stop());
+
+        btnScreen.style.backgroundColor = '#17a2b8';
+        responseArea.innerText = 'Generating...';
+
+        try {
+          const requestBody = {
+            transcript: transcriptArea.innerText || 'Analyze this screenshot',
+            role: 'data engineer'
+          };
+
+          if (capturedScreenshot) {
+            requestBody.screenshot = capturedScreenshot;
+          }
+
+          const res = await fetch('http://127.0.0.1:5050/ai', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+          });
+
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+
+          const data = await res.json();
+          let formattedResponse = data.answer || 'No response from AI.';
+
+          const codeBlocks = [];
+          const inlineCodeBlocks = [];
+
+          formattedResponse = formattedResponse.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+            const language = lang || 'plaintext';
+            const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
+            codeBlocks.push(`<pre><code class="language-${language}">${escapedCode}</code></pre>`);
+            return placeholder;
+          });
+
+          formattedResponse = formattedResponse.replace(/`([^`]+)`/g, (match, code) => {
+            const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const placeholder = `___INLINE_CODE_${inlineCodeBlocks.length}___`;
+            inlineCodeBlocks.push(`<code>${escapedCode}</code>`);
+            return placeholder;
+          });
+
+          formattedResponse = formattedResponse.replace(/\n/g, '<br>');
+
+          codeBlocks.forEach((block, i) => {
+            formattedResponse = formattedResponse.replace(`___CODE_BLOCK_${i}___`, block);
+          });
+
+          inlineCodeBlocks.forEach((code, i) => {
+            formattedResponse = formattedResponse.replace(`___INLINE_CODE_${i}___`, code);
+          });
+
+          responseArea.innerHTML = formattedResponse;
+
+          responseArea.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightElement(block);
+          });
+
+          transcriptSection.classList.add('compact');
+          responseSection.classList.add('expanded');
+          responseArea.scrollTop = 0;
+
+          if (capturedScreenshot) {
+            capturedScreenshot = null;
+            btnScreen.style.backgroundColor = '#444';
+          }
+
+          btnGenerate.classList.remove('active');
+        } catch (e) {
+          console.error('AI Generation Error:', e);
+          responseArea.innerText = `Error: ${e.message}\n\nCheck if backend is running on port 5050.`;
+          transcriptSection.classList.remove('minimized');
+          responseSection.classList.remove('maximized');
+        }
+      } catch (e) {
+        console.error('Screen Capture Error:', e);
+        responseArea.innerText = `Error: ${e.message}`;
+      }
+    };
+
+    window.toggleSystemCapture = () => startCapture('system');
+    window.toggleMicCapture = () => startCapture('mic');
+    window.captureScreen = () => btnScreen.click();
+    window.generateAIOnly = () => btnGenerate.click();
+
+    window.clearTranscript = () => {
+      transcriptArea.innerText = '';
+      responseArea.innerText = '';
+      transcriptSection.classList.remove('compact');
+      responseSection.classList.remove('expanded');
+      transcriptSection.classList.remove('minimized');
+      responseSection.classList.remove('maximized');
+    };
+
+    window.maximizeResponse = () => {
+      if (responseSection.classList.contains('maximized')) {
+        transcriptSection.classList.remove('minimized');
+        responseSection.classList.remove('maximized');
+
+        if (responseSection.classList.contains('expanded')) {
+          transcriptSection.classList.add('compact');
+        }
+      } else {
+        transcriptSection.classList.remove('compact');
+        transcriptSection.classList.add('minimized');
+        responseSection.classList.add('maximized');
+      }
+    };
+
+    /* ---- Close Button Logic ---- */
+    const closeBtn = document.getElementById('close-btn');
+    if (closeBtn) {
+      console.log('Close button found');
+      closeBtn.onclick = () => {
+        console.log('Close button clicked');
+        try {
+          if (typeof ipcRenderer !== 'undefined') {
+            ipcRenderer.send('close-app');
+          } else {
+            console.warn('ipcRenderer not found, trying window.close()');
+            window.close();
+          }
+        } catch (err) {
+          console.error('Error closing app:', err);
+          window.close();
+        }
+      };
+    } else {
+      console.error('Close button not found');
+    }
+
+    window.onload = () => {
+      console.log('Auto-starting System Audio...');
+      setTimeout(() => startCapture('system'), 1000);
+    };
+  </script>
+  <script src="setup.js"></script>
+  <script src="streaming-ai.js"></script>
+</body>
+
+</html>
