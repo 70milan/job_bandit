@@ -1,0 +1,27 @@
+{
+  "name": "echohire-frontend",
+  "version": "1.0.0",
+  "description": "Electron-based UI for JobAndit.",
+  "main": "main.js",
+  "scripts": {
+    "start": "npm run electron",
+    "start:dev": "concurrently \"npm run electron\" \"cd ../backend && uvicorn main:app --port 5050\"",
+    "electron": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.echohire.frontend",
+    "productName": "JobAndit",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "portable"
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^29.4.0",
+    "electron-builder": "^24.13.3"
+  }
+}
