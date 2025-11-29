@@ -32,9 +32,19 @@ env/
 # User data and sensitive files
 backend/resumes/
 backend/profile.json
+backend/user_profile.json
 profile.json
+user_profile.json
 backend/.env
 .env
+*.env
+.env.*
+
+# API Keys and secrets
+**/api_key*
+**/secrets*
+**/*secret*
+**/*credential*
 
 # Build outputs
 frontend/dist/
