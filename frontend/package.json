@@ -1,6 +1,6 @@
 {
   "name": "echohire-frontend",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Electron-based UI for JobAndit.",
   "main": "main.js",
   "scripts": {
@@ -52,11 +52,12 @@
       ]
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "extraMetadata": {
       "main": "main.js"

@@ -10,8 +10,71 @@ let isMiniMode = false;
 let backendProcess = null;
 
 // ============ AUTO-UPDATER SETUP ============
-autoUpdater.autoDownload = false;
+autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
+
+function showUpdateUI(type, version, percent = 0) {
+  if (!win) return;
+  
+  const html = `
+    (function() {
+      let el = document.getElementById('update-overlay');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'update-overlay';
+        el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;';
+        document.body.appendChild(el);
+      }
+      
+      if ('${type}' === 'downloading') {
+        el.innerHTML = \`
+          <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border:1px solid rgba(0,212,255,0.3);border-radius:12px;padding:40px 50px;text-align:center;box-shadow:0 0 60px rgba(0,212,255,0.2);">
+            <div style="font-size:28px;margin-bottom:8px;">⬇️</div>
+            <div style="color:#00d4ff;font-size:18px;font-weight:600;margin-bottom:6px;">Downloading Update</div>
+            <div style="color:#888;font-size:13px;margin-bottom:20px;">v${version}</div>
+            <div style="width:280px;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
+              <div id="update-progress-bar" style="height:100%;background:linear-gradient(90deg,#00d4ff,#00ff88);width:${percent}%;transition:width 0.3s ease;"></div>
+            </div>
+            <div id="update-progress-text" style="color:#00d4ff;font-size:14px;margin-top:12px;font-weight:500;">${percent}%</div>
+          </div>
+        \`;
+      } else if ('${type}' === 'installing') {
+        el.innerHTML = \`
+          <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border:1px solid rgba(0,212,255,0.3);border-radius:12px;padding:40px 50px;text-align:center;box-shadow:0 0 60px rgba(0,212,255,0.2);">
+            <div style="font-size:28px;margin-bottom:8px;">✨</div>
+            <div style="color:#00d4ff;font-size:18px;font-weight:600;margin-bottom:6px;">Installing Update</div>
+            <div style="color:#888;font-size:13px;">Restarting app...</div>
+            <div style="margin-top:20px;">
+              <div style="width:24px;height:24px;border:3px solid rgba(0,212,255,0.3);border-top-color:#00d4ff;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto;"></div>
+            </div>
+          </div>
+          <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+        \`;
+      }
+    })()
+  `;
+  win.webContents.executeJavaScript(html);
+}
+
+function updateProgressUI(percent) {
+  if (!win) return;
+  win.webContents.executeJavaScript(`
+    const bar = document.getElementById('update-progress-bar');
+    const text = document.getElementById('update-progress-text');
+    if (bar) bar.style.width = '${percent}%';
+    if (text) text.textContent = '${percent}%';
+  `);
+}
+
+function hideUpdateUI() {
+  if (!win) return;
+  win.webContents.executeJavaScript(`
+    const el = document.getElementById('update-overlay');
+    if (el) el.remove();
+  `);
+}
+
+let updateVersion = '';
 
 autoUpdater.on('checking-for-update', () => {
   console.log('Checking for updates...');
@@ -19,16 +82,8 @@ autoUpdater.on('checking-for-update', () => {
 
 autoUpdater.on('update-available', (info) => {
   console.log('Update available:', info.version);
-  dialog.showMessageBox(win, {
-    type: 'info',
-    title: 'Update Available',
-    message: `A new version (${info.version}) is available. Download now?`,
-    buttons: ['Download', 'Later']
-  }).then((result) => {
-    if (result.response === 0) {
-      autoUpdater.downloadUpdate();
-    }
-  });
+  updateVersion = info.version;
+  showUpdateUI('downloading', info.version, 0);
 });
 
 autoUpdater.on('update-not-available', () => {
@@ -36,25 +91,24 @@ autoUpdater.on('update-not-available', () => {
 });
 
 autoUpdater.on('download-progress', (progress) => {
-  console.log(`Download progress: ${Math.round(progress.percent)}%`);
+  const percent = Math.round(progress.percent);
+  console.log(`Download progress: ${percent}%`);
+  updateProgressUI(percent);
 });
 
 autoUpdater.on('update-downloaded', (info) => {
   console.log('Update downloaded:', info.version);
-  dialog.showMessageBox(win, {
-    type: 'info',
-    title: 'Update Ready',
-    message: `Version ${info.version} has been downloaded. Restart now to install?`,
-    buttons: ['Restart', 'Later']
-  }).then((result) => {
-    if (result.response === 0) {
-      autoUpdater.quitAndInstall();
-    }
-  });
+  showUpdateUI('installing', info.version);
+  // Auto-install after short delay
+  setTimeout(() => {
+    autoUpdater.quitAndInstall(true, true);
+  }, 1500);
 });
 
 autoUpdater.on('error', (err) => {
   console.error('Auto-updater error:', err);
+  hideProgress();
+  dialog.showErrorBox('Update Error', `Auto-update failed: ${err.message}`);
 });
 // ============ END AUTO-UPDATER ============
 
