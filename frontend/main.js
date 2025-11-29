@@ -306,7 +306,28 @@ app.whenReady().then(() => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
   if (backendProcess) {
-    backendProcess.kill();
+    // Force kill the backend process and its children
+    try {
+      process.kill(backendProcess.pid, 'SIGTERM');
+    } catch (e) {
+      console.log('Backend already terminated');
+    }
+  }
+});
+
+// Also handle before-quit for extra safety
+app.on('before-quit', () => {
+  if (backendProcess && !backendProcess.killed) {
+    try {
+      // On Windows, use taskkill to ensure process tree is killed
+      if (process.platform === 'win32') {
+        require('child_process').execSync(`taskkill /pid ${backendProcess.pid} /T /F`, { stdio: 'ignore' });
+      } else {
+        backendProcess.kill('SIGKILL');
+      }
+    } catch (e) {
+      console.log('Backend cleanup:', e.message);
+    }
   }
 });
 app.on('window-all-closed', () => {

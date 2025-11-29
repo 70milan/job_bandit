@@ -1,6 +1,6 @@
 {
   "name": "echohire-frontend",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Electron-based UI for JobAndit.",
   "main": "main.js",
   "scripts": {
