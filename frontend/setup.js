@@ -28,30 +28,34 @@ initSession();
 
 function initSession() {
         const fileInput = document.getElementById('setup-resume');
+        const apiKeyInput = document.getElementById('setup-apikey');
         const jdInput = document.getElementById('setup-jobdesc');
         const startBtn = document.getElementById('btn-start-session');
+        
+        function checkAllInputs() {
+            const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+            const hasApiKey = apiKeyInput && apiKeyInput.value.trim().length > 0;
+            const hasJD = jdInput && jdInput.value.trim().length > 0;
+            
+            if (hasFile && hasApiKey && hasJD && startBtn) {
+                startBtn.disabled = false;
+                startBtn.style.opacity = '1';
+            }
+        }
+        
         if (fileInput) {
             fileInput.addEventListener('change', function() {
                 if (fileInput.files && fileInput.files.length > 0) {
                     fileInput.classList.add('selected');
-                    // Re-enable button if both inputs are now valid
-                    if (jdInput && jdInput.value.trim() && startBtn) {
-                        startBtn.disabled = false;
-                        startBtn.style.opacity = '1';
-                    }
-                } else {
-                    fileInput.classList.remove('selected');
                 }
+                checkAllInputs();
             });
         }
+        if (apiKeyInput) {
+            apiKeyInput.addEventListener('input', checkAllInputs);
+        }
         if (jdInput) {
-            jdInput.addEventListener('input', function() {
-                // Re-enable button if both inputs are now valid
-                if (jdInput.value.trim() && fileInput && fileInput.files && fileInput.files.length > 0 && startBtn) {
-                    startBtn.disabled = false;
-                    startBtn.style.opacity = '1';
-                }
-            });
+            jdInput.addEventListener('input', checkAllInputs);
         }
     const endBtn = document.getElementById('btn-session-end');
     const startTimerBtn = document.getElementById('btn-session-start');
@@ -77,12 +81,22 @@ function initSession() {
 
 async function handleCreateSession() {
     const fileInput = document.getElementById('setup-resume');
+    const apiKeyInput = document.getElementById('setup-apikey');
     const jdInput = document.getElementById('setup-jobdesc');
     const status = document.getElementById('setup-status');
     const startBtn = document.getElementById('btn-start-session');
 
     if (!fileInput.files || fileInput.files.length === 0) {
         status.innerText = "Please upload a resume (.docx)";
+        status.style.color = "#ff4444";
+        startBtn.disabled = true;
+        startBtn.style.opacity = '0.5';
+        return;
+    }
+
+    const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
+    if (!apiKey) {
+        status.innerText = "Please enter your OpenAI API key";
         status.style.color = "#ff4444";
         startBtn.disabled = true;
         startBtn.style.opacity = '0.5';
@@ -100,6 +114,19 @@ async function handleCreateSession() {
     try {
         startBtn.disabled = true;
         status.style.color = "#aaa";
+
+        // 0. Validate API Key first
+        status.innerText = "Validating API key...";
+        const validateRes = await fetch('http://127.0.0.1:5050/validate-api-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ api_key: apiKey })
+        });
+        const validateJson = await validateRes.json();
+        
+        if (!validateJson.valid) {
+            throw new Error(validateJson.error || "Invalid API key");
+        }
 
         // 1. Upload Resume
         status.innerText = "Uploading resume...";
@@ -119,9 +146,10 @@ async function handleCreateSession() {
         if (!refreshRes.ok) throw new Error("Failed to fetch profile");
         const currentProfile = await refreshRes.json();
 
-        // 3. Update with new Job Description
+        // 3. Update with API key and Job Description
         const updatedProfile = {
             ...currentProfile,
+            openai_api_key: apiKey,
             job_description: jdInput.value.trim()
         };
 
@@ -138,9 +166,9 @@ async function handleCreateSession() {
             throw new Error("Profile save failed: " + (saveJson.error || 'Unknown error'));
         }
 
-        // 5. Session created - hide overlay, DON'T start timer yet
+        // 5. Session created - hide overlay
         sessionCreated = true;
-        status.innerText = "Session created! Use Start/Stop buttons below to control timer.";
+        status.innerText = "Session created!";
         status.style.color = "#28a745";
 
         setTimeout(() => {
@@ -153,6 +181,7 @@ async function handleCreateSession() {
         status.innerText = `Error: ${e.message}`;
         status.style.color = "#ff4444";
         startBtn.disabled = false;
+        startBtn.style.opacity = '1';
     }
 }
 

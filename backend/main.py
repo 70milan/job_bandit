@@ -1,12 +1,9 @@
 # backend/main.py
-from dotenv import load_dotenv
-load_dotenv()
-
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import StreamingResponse
 from openai import OpenAI
 import os
-
+import sys
 
 import json
 import asyncio
@@ -18,6 +15,14 @@ from typing import Optional, Dict, Any
 
 app = FastAPI()
 
+# Determine base directory (works with PyInstaller)
+if getattr(sys, 'frozen', False):
+    # Running as compiled executable
+    BASE_DIR = Path(sys.executable).parent
+else:
+    # Running as script
+    BASE_DIR = Path(__file__).parent
+
 # Allow the Electron frontend and local testing to call the API
 app.add_middleware(
     CORSMiddleware,
@@ -26,21 +31,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+def get_api_key():
+    """Get API key from user profile only"""
+    global profile_cache
+    if isinstance(profile_cache, dict) and profile_cache.get('openai_api_key'):
+        return profile_cache['openai_api_key']
+    return None
 
 @app.websocket("/realtime")
 async def realtime(ws: WebSocket):
     await ws.accept()
     
+    api_key = get_api_key()
     url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01"
     headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "OpenAI-Beta": "realtime=v1",
     }
     
-    print(f"Incoming WebSocket connection. API Key present: {bool(OPENAI_API_KEY)}")
-    if not OPENAI_API_KEY:
-        print("ERROR: OPENAI_API_KEY is missing!")
+    print(f"Incoming WebSocket connection. API Key present: {bool(api_key)}")
+    if not api_key:
+        print("ERROR: API key not found in profile!")
         await ws.close(code=1008, reason="Missing API Key")
         return
 
@@ -129,7 +140,7 @@ class AIRequest(BaseModel):
 
 
 # Persistent profile support -------------------------------------------------
-PROFILE_PATH = Path(__file__).parent / "user_profile.json"
+PROFILE_PATH = BASE_DIR / "user_profile.json"
 
 def load_profile() -> Dict[str, Any]:
     if PROFILE_PATH.exists():
@@ -166,6 +177,30 @@ profile_cache = load_profile()
 async def get_profile():
     return profile_cache
 
+@app.post('/validate-api-key')
+async def validate_api_key(data: Dict[str, str]):
+    """Validate OpenAI API key before allowing session creation"""
+    api_key = data.get('api_key', '').strip()
+    
+    if not api_key:
+        return {"valid": False, "error": "API key is required"}
+    
+    if not api_key.startswith('sk-'):
+        return {"valid": False, "error": "Invalid API key format"}
+    
+    try:
+        client = OpenAI(api_key=api_key)
+        client.models.list()
+        return {"valid": True}
+    except Exception as e:
+        error_msg = str(e)
+        if "invalid_api_key" in error_msg or "Incorrect API key" in error_msg:
+            return {"valid": False, "error": "Invalid API key"}
+        elif "insufficient_quota" in error_msg:
+            return {"valid": False, "error": "API key has no credits/quota"}
+        else:
+            return {"valid": False, "error": f"API key validation failed: {error_msg[:100]}"}
+
 @app.post('/profile')
 async def post_profile(data: Dict[str, Any]):
     global profile_cache
@@ -185,8 +220,10 @@ async def upload_resume(file: UploadFile = File(...)):
         if not filename.lower().endswith('.docx'):
             return {"status": "error", "error": "Only .docx files supported"}
 
-        resumes_dir = Path(__file__).parent / 'resumes'
+        resumes_dir = BASE_DIR / 'resumes'
+        print(f"Creating resumes directory at: {resumes_dir}")
         resumes_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Directory created: {resumes_dir.exists()}")
         out_path = resumes_dir / filename
         content = await file.read()
         out_path.write_bytes(content)
@@ -231,7 +268,7 @@ async def stream_ai_response(req: AIRequest):
     
     async def generate_stream():
         try:
-            client = OpenAI(api_key=OPENAI_API_KEY)
+            client = OpenAI(api_key=get_api_key())
             
             # CRITICAL: Reload profile from disk to get latest resume
             current_profile = load_profile()
@@ -265,8 +302,9 @@ async def stream_ai_response(req: AIRequest):
                     {
                         "role": "system",
                         "content": (
-                            f"You are a {req.role}. When you see a coding problem in the screenshot, provide the SOLUTION CODE with a brief explanation. "
-                            "Do not just describe what you see - solve it! be to the point:8-9 sentences on an average. "
+                            f"You are a {req.role}. When you see a coding problem in the screenshot, provide the SOLUTION CODE with a clear explanation. "
+                            "Do not just describe what you see - solve it! Give detailed answers with 10-15 sentences explaining the concept, approach, and solution. "
+                            "For technical concepts, explain what it is, why it matters, how it works, and provide examples. "
                             "You have been provided a Candidate resume. Answer ALL questions based on the resume content provided. Extract and use information from the resume to answer in first person as if you are the candidate."
                             "If you are asked to write code, write the code in the same language as the job description (mostly sql, pyspark, pandas, pyton, pyspark sql)."
                             "Answer in simple english as if english is not your first language and you are an immigrant in the US for past 10 years."
@@ -349,7 +387,7 @@ async def stream_ai_response(req: AIRequest):
 @app.post("/ai")
 async def generate_ai_response(req: AIRequest):
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = OpenAI(api_key=get_api_key())
         
         # CRITICAL: Reload profile from disk to get latest resume (in case it was uploaded after backend started)
         current_profile = load_profile()
@@ -385,8 +423,9 @@ async def generate_ai_response(req: AIRequest):
                 {
                     "role": "system",
                     "content": (
-                        f"You are a {req.role}. When you see a coding problem in the screenshot, provide the SOLUTION CODE with a brief explanation. "
-                        "Do not just describe what you see - solve it! be to the point:8-9 sentences on an average. "
+                        f"You are a {req.role}. When you see a coding problem in the screenshot, provide the SOLUTION CODE with a clear explanation. "
+                        "Do not just describe what you see - solve it! Give detailed answers with 10-15 sentences explaining the concept, approach, and solution. "
+                        "For technical concepts, explain what it is, why it matters, how it works, and provide examples. "
                         "You have been provided a Candidate resume. Answer ALL questions based on the resume content provided. Extract and use information from the resume to answer in first person as if you are the candidate."
                         "If you are asked to write code, write the code in the same language as the job description (mostly sql, pyspark, pandas, pyton, pyspark sql)."
                         "Answer in simple english as if english is not your first language and you are an immigrant in the US for past 10 years."

@@ -1,10 +1,96 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, screen, ipcMain, desktopCapturer } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut, screen, ipcMain, desktopCapturer, dialog } = require('electron');
 const path = require('path');
+const { spawn } = require('child_process');
+const { autoUpdater } = require('electron-updater');
 
 let tray = null;
 let win = null;
 let isRecording = false;
 let isMiniMode = false;
+let backendProcess = null;
+
+// ============ AUTO-UPDATER SETUP ============
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('checking-for-update', () => {
+  console.log('Checking for updates...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  console.log('Update available:', info.version);
+  dialog.showMessageBox(win, {
+    type: 'info',
+    title: 'Update Available',
+    message: `A new version (${info.version}) is available. Download now?`,
+    buttons: ['Download', 'Later']
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.downloadUpdate();
+    }
+  });
+});
+
+autoUpdater.on('update-not-available', () => {
+  console.log('No updates available');
+});
+
+autoUpdater.on('download-progress', (progress) => {
+  console.log(`Download progress: ${Math.round(progress.percent)}%`);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('Update downloaded:', info.version);
+  dialog.showMessageBox(win, {
+    type: 'info',
+    title: 'Update Ready',
+    message: `Version ${info.version} has been downloaded. Restart now to install?`,
+    buttons: ['Restart', 'Later']
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('Auto-updater error:', err);
+});
+// ============ END AUTO-UPDATER ============
+
+function startBackend() {
+  const isDev = !app.isPackaged;
+  
+  if (isDev) {
+    console.log('Development mode: assuming backend runs separately');
+    return;
+  }
+
+  const backendPath = path.join(process.resourcesPath, 'backend', 'interview-backend.exe');
+  console.log('Starting backend from:', backendPath);
+  
+  backendProcess = spawn(backendPath, [], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: false,
+    windowsHide: false
+  });
+
+  backendProcess.stdout.on('data', (data) => {
+    console.log(`[BACKEND] ${data.toString()}`);
+  });
+
+  backendProcess.stderr.on('data', (data) => {
+    console.error(`[BACKEND ERROR] ${data.toString()}`);
+  });
+
+  backendProcess.on('error', (err) => {
+    console.error('Failed to start backend:', err);
+  });
+
+  backendProcess.on('exit', (code) => {
+    console.log(`Backend exited with code ${code}`);
+  });
+}
 
 function centerTop(width = 800, height = 600) {
   const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
@@ -39,7 +125,20 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  createWindow();
+  // Start backend first
+  startBackend();
+  
+  // Wait for backend to initialize
+  setTimeout(() => {
+    createWindow();
+    
+    // Check for updates after window is created (only in production)
+    if (app.isPackaged) {
+      setTimeout(() => {
+        autoUpdater.checkForUpdates();
+      }, 3000);
+    }
+  }, 2000);
 
   // IPC Handler for Screen Sources (Workaround for renderer restriction)
   ipcMain.handle('GET_SOURCES', async (event, types) => {
@@ -204,7 +303,12 @@ app.whenReady().then(() => {
   if (app.dock) app.dock.hide();
 });
 
-app.on('will-quit', () => globalShortcut.unregisterAll());
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+  if (backendProcess) {
+    backendProcess.kill();
+  }
+});
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();

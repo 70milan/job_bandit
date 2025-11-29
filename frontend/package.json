@@ -1,6 +1,6 @@
 {
   "name": "echohire-frontend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Electron-based UI for JobAndit.",
   "main": "main.js",
   "scripts": {
@@ -12,6 +12,11 @@
   "build": {
     "appId": "com.echohire.frontend",
     "productName": "JobAndit",
+    "publish": {
+      "provider": "github",
+      "owner": "70milan",
+      "repo": "job_bandit"
+    },
     "directories": {
       "output": "dist"
     },
@@ -40,7 +45,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
@@ -60,5 +67,8 @@
     "concurrently": "^8.2.2",
     "electron": "^29.4.0",
     "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
   }
 }
