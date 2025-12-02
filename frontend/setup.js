@@ -108,7 +108,62 @@ function initSession() {
     if (stopTimerBtn) {
         stopTimerBtn.onclick = stopSessionTimer;
     }
+    
+    // Past Sessions button and modal
+    const pastSessionsBtn = document.getElementById('btn-past-sessions');
+    const pastSessionsModal = document.getElementById('past-sessions-modal');
+    const closePastSessions = document.getElementById('close-past-sessions');
+    
+    if (pastSessionsBtn) {
+        pastSessionsBtn.onclick = async () => {
+            pastSessionsModal.style.display = 'flex';
+            const listContainer = document.getElementById('past-sessions-list');
+            listContainer.innerHTML = '<div style="color: rgba(255,255,255,0.4); font-size: 12px; text-align: center; padding: 20px;">Loading...</div>';
+            
+            try {
+                const res = await fetch('http://127.0.0.1:5050/sessions');
+                const data = await res.json();
+                
+                if (data.sessions && data.sessions.length > 0) {
+                    listContainer.innerHTML = data.sessions.map(session => `
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 12px; cursor: pointer; transition: all 0.2s;" 
+                             onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
+                             onmouseout="this.style.background='rgba(255,255,255,0.03)'"
+                             onclick="window.openPastSession('${session.name.replace(/'/g, "\\'")}')">
+                            <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-bottom: 4px;">${session.name}</div>
+                            <div style="color: rgba(255,255,255,0.4); font-size: 10px;">${session.created_at || 'No date'}</div>
+                            <div style="color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${session.job_description_preview || ''}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = '<div style="color: rgba(255,255,255,0.4); font-size: 12px; text-align: center; padding: 20px;">No past sessions found</div>';
+                }
+            } catch (e) {
+                listContainer.innerHTML = '<div style="color: #ff6b6b; font-size: 12px; text-align: center; padding: 20px;">Error loading sessions. Is backend running?</div>';
+            }
+        };
+    }
+    
+    if (closePastSessions) {
+        closePastSessions.onclick = () => {
+            pastSessionsModal.style.display = 'none';
+        };
+    }
+    
+    // Close modal when clicking outside
+    if (pastSessionsModal) {
+        pastSessionsModal.onclick = (e) => {
+            if (e.target === pastSessionsModal) {
+                pastSessionsModal.style.display = 'none';
+            }
+        };
+    }
 }
+
+// Open a past session (placeholder - just shows session name for now)
+window.openPastSession = function(sessionName) {
+    alert(`Session: ${sessionName}\n\nNote: Loading past sessions is not yet implemented. This will show session details in a future update.`);
+};
 
 async function handleCreateSession() {
     const sessionNameInput = document.getElementById('setup-session-name');
@@ -225,7 +280,7 @@ async function handleCreateSession() {
         // 4. Session created - hide overlay
         sessionCreated = true;
         status.innerText = "Session created!";
-        status.style.color = "#28a745";
+        status.style.color = "rgba(100, 255, 150, 0.9)";
 
         setTimeout(() => {
             const overlay = document.getElementById('setup-overlay');

@@ -146,10 +146,10 @@ function startBackend() {
   });
 }
 
-function centerTop(width = 800, height = 600) {
+function centerTop(width = 712, height = 600) {
   const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
   const x = Math.round((sw - width) / 2);
-  const y = 0;
+  const y = Math.round((sh - height) / 2);
   return { x, y, width, height };
 }
 
