@@ -387,9 +387,10 @@
         <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
     </div>
+    <span id="license-status-badge" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; z-index: 10001;"></span>
     <div style="width: 100%; height: 100%; display: flex; flex-direction: column; padding: 25px 25px 15px 25px; box-sizing: border-box;">
       <form autocomplete="off" style="display: flex; flex-direction: column; gap: 12px; flex: 1; align-items: stretch; max-width: 100%;">
-        <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
+        <div style="width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: flex-start;">
           <div style="display: flex; gap: 10px;">
             <button id="btn-past-sessions" type="button" style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.5); font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Past Sessions</button>
             <button id="btn-guide" type="button" style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.5); font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Guide</button>
@@ -428,7 +429,7 @@
             placeholder="Paste job description..."></textarea></div>
         <div id="setup-status"
           style="color: #ff6b6b; font-size: 12px; min-height: 20px; width: 100%; text-align: left;"></div>
-        <button id="btn-start-session"
+        <button id="btn-start-session" type="button"
           style="width: 100%; box-sizing: border-box; padding: 12px 0; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; color: rgba(255, 255, 255, 0.5); font-weight: 500; cursor: pointer; font-size: 11px; transition: all 0.2s; letter-spacing: 1.5px; text-transform: uppercase;">Create
           Session</button>
         <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 10px;"><span class="app-version"></span></div>
