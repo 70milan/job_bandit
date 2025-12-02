@@ -1,11 +1,45 @@
 // Session Setup & Timer Logic
 
-const SESSION_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
+const FULL_SESSION_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
+const DEMO_SESSION_DURATION_MS = 30 * 1000; // 30 seconds
+let SESSION_DURATION_MS = DEMO_SESSION_DURATION_MS; // Default to demo
 let sessionEndTime = null;
 let timerInterval = null;
 let sessionCreated = false;
 let sessionTimerStarted = false;
 let currentSessionName = null;  // Track current session name
+let isLicensed = false; // Track license status
+
+// License validation (obfuscated)
+const VALID_LICENSE_HASH = 'a3f2b8c1d4e5'; // Simple hash of valid key
+function hashLicense(key) {
+    // Simple hash for basic obfuscation
+    if (!key) return '';
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+        hash = ((hash << 5) - hash) + key.charCodeAt(i);
+        hash = hash & hash;
+    }
+    return Math.abs(hash).toString(16).substring(0, 12);
+}
+
+async function validateLicense(key) {
+    if (!key || key.trim() === '') return 'empty';
+    
+    try {
+        const res = await fetch('http://127.0.0.1:5050/validate-license', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ license_key: key.trim() })
+        });
+        const data = await res.json();
+        return data.status; // 'valid', 'invalid', or 'empty'
+    } catch (e) {
+        console.error('License validation error:', e);
+        // If backend is down, allow demo mode
+        return 'empty';
+    }
+}
 
 // Session lock - prevents actions until Start is clicked
 window.isSessionActive = false;
@@ -43,6 +77,38 @@ function showCustomModal(message, isConfirm = false) {
 
 window.customAlert = (msg) => showCustomModal(msg, false);
 window.customConfirm = (msg) => showCustomModal(msg, true);
+
+// License prompt after demo expires
+async function showLicensePrompt() {
+    const result = await customConfirm('Demo session expired (30s).\n\nEnter a license key for full 2-hour sessions.\n\nClick OK to enter license, or Cancel to return to setup.');
+    
+    if (result) {
+        // Show setup overlay again so user can enter license
+        const overlay = document.getElementById('setup-overlay');
+        if (overlay) {
+            overlay.style.display = 'flex';
+            // Focus on license input
+            setTimeout(() => {
+                const licenseInput = document.getElementById('setup-license');
+                if (licenseInput) {
+                    licenseInput.focus();
+                    licenseInput.style.borderColor = 'rgba(100, 255, 150, 0.5)';
+                }
+            }, 100);
+        }
+        // Reset session state
+        sessionCreated = false;
+        window.isSessionActive = false;
+    } else {
+        // Return to setup screen
+        const overlay = document.getElementById('setup-overlay');
+        if (overlay) {
+            overlay.style.display = 'flex';
+        }
+        sessionCreated = false;
+        window.isSessionActive = false;
+    }
+}
 
 function showSessionError() {
   const popup = document.getElementById('session-error-popup');
@@ -218,6 +284,35 @@ function initSession() {
             }
         };
     }
+    
+    // API Key info click handler
+    const apikeyInfo = document.getElementById('apikey-info');
+    if (apikeyInfo) {
+        apikeyInfo.onclick = () => {
+            customAlert('You need your own OpenAI API key to use this app.\n\n' +
+                'HOW TO GET ONE:\n' +
+                '1. Go to <a href="https://platform.openai.com" target="_blank" style="color: rgba(100, 255, 150, 0.9);">platform.openai.com</a>\n' +
+                '2. Sign up or log in\n' +
+                '3. Go to API Keys section\n' +
+                '4. Create a new secret key (starts with sk-)\n\n' +
+                'WHY THIS IS CHEAP:\n' +
+                'Similar interview apps charge $30-100/month.\n' +
+                'With your own API key, you pay only for what you use!\n\n' +
+                'EXAMPLE COST:\n' +
+                '- 50 AI responses = $0.15 - $0.30\n' +
+                '- Full 2-hour interview = $0.50 - $1.00\n' +
+                '- That is 10-100x cheaper than competitors!\n\n' +
+                'Add $5-10 credit to start. It lasts for many interviews.');
+        };
+    }
+    
+    // License info click handler
+    const licenseInfo = document.getElementById('license-info');
+    if (licenseInfo) {
+        licenseInfo.onclick = () => {
+            customAlert('Get a license key for full 2-hour sessions.\n\nOne-time payment of $1 only.\n\nContact: mjulez70@gmail.com');
+        };
+    }
 }
 
 // Open a past session (placeholder - just shows session name for now)
@@ -269,6 +364,36 @@ async function handleCreateSession() {
         startBtn.disabled = true;
         startBtn.style.opacity = '0.5';
         return;
+    }
+
+    // Validate license
+    const licenseInput = document.getElementById('setup-license');
+    const licenseKey = licenseInput ? licenseInput.value.trim() : '';
+    console.log('[DEBUG] License key:', licenseKey ? '(provided)' : '(empty)');
+    const licenseStatus = await validateLicense(licenseKey);
+    console.log('[DEBUG] License status:', licenseStatus);
+    
+    if (licenseStatus === 'invalid') {
+        status.innerText = "Invalid license key. Contact mjulez70@gmail.com";
+        status.style.color = "#ff4444";
+        startBtn.disabled = false;
+        startBtn.style.opacity = '1';
+        return;
+    }
+    
+    // Set session duration based on license
+    if (licenseStatus === 'valid') {
+        isLicensed = true;
+        SESSION_DURATION_MS = FULL_SESSION_DURATION_MS;
+        console.log('[DEBUG] Licensed: Full 2-hour session');
+    } else {
+        // Demo mode - show notification before proceeding
+        isLicensed = false;
+        SESSION_DURATION_MS = DEMO_SESSION_DURATION_MS;
+        console.log('Demo mode: 30-second session');
+        // Temporarily show status instead of popup to debug
+        status.innerText = "Demo mode: 30-second session";
+        status.style.color = "rgba(255, 200, 100, 0.9)";
     }
 
     try {
@@ -339,8 +464,18 @@ async function handleCreateSession() {
 
         // 4. Session created - hide overlay
         sessionCreated = true;
-        status.innerText = "Session created!";
+        status.innerText = isLicensed ? "Session created!" : "Demo session created (30s)";
         status.style.color = "rgba(100, 255, 150, 0.9)";
+        
+        // Update timer display to show correct duration
+        const timerText = document.getElementById('session-timer-text');
+        if (timerText) {
+            if (isLicensed) {
+                timerText.innerText = '2:00:00';
+            } else {
+                timerText.innerText = '0:00:30';
+            }
+        }
 
         setTimeout(() => {
             const overlay = document.getElementById('setup-overlay');
@@ -379,7 +514,7 @@ function startSessionTimer() {
     // Update button states
     startBtn.classList.add('active');
     stopBtn.classList.remove('stopped');
-    statusText.innerText = 'Session Running';
+    statusText.innerText = isLicensed ? 'Session Running' : 'Demo Mode (30s)';
 
     timerInterval = setInterval(() => {
         const remaining = sessionEndTime - Date.now();
@@ -389,10 +524,16 @@ function startSessionTimer() {
             timerInterval = null;
             timerText.innerText = `0:00:00`;
             timerDot.className = 'session-indicator';
-            customAlert('Session time expired! (2 hours)');
+            if (isLicensed) {
+                customAlert('Session time expired! (2 hours)');
+                statusText.innerText = 'Session Expired';
+            } else {
+                // Demo expired - show license prompt
+                showLicensePrompt();
+                statusText.innerText = 'Demo Expired';
+            }
             stopBtn.classList.add('stopped');
             startBtn.classList.remove('active');
-            statusText.innerText = 'Session Expired';
             return;
         }
 
