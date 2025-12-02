@@ -410,8 +410,15 @@
           </div>
         </div>
         <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch;"><label
-            style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500;">OpenAI API Key</label>
+            style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 6px;">OpenAI API Key
+            <span id="apikey-info" style="cursor: pointer; color: rgba(100, 255, 150, 0.6); font-size: 10px; font-weight: normal;" title="API Key Info">(?)</span></label>
           <input type="password" id="setup-apikey" placeholder="sk-..." autocomplete="new-password"
+            style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; background: rgba(255, 255, 255, 0.03); color: #fff; font-family: 'Segoe UI', Arial; font-size: 14px; outline: none;" />
+        </div>
+        <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch;"><label
+            style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 6px;">License Key
+            <span id="license-info" style="cursor: pointer; color: rgba(100, 255, 150, 0.6); font-size: 10px; font-weight: normal;" title="Get a license">(?)</span></label>
+          <input type="password" id="setup-license" placeholder="Optional - 30s demo without license" autocomplete="off"
             style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; background: rgba(255, 255, 255, 0.03); color: #fff; font-family: 'Segoe UI', Arial; font-size: 14px; outline: none;" />
         </div>
         <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch; flex: 1;"><label
@@ -450,7 +457,12 @@
       <div style="flex: 1; overflow-y: auto; color: rgba(255,255,255,0.7); font-size: 12px; line-height: 1.6; padding-right: 8px;">
         <div style="margin-bottom: 14px;">
           <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">About</div>
-          <p style="margin: 0;">Interview Assistant helps you ace technical interviews by transcribing audio, capturing screenshots, and generating AI-powered responses using your resume and job description context.</p>
+          <p style="margin: 0;">Interview Assistant helps you ace technical interviews by transcribing audio, capturing screenshots, and generating AI-powered responses and coding solutions using your resume and job description context.</p>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Why This App?</div>
+          <p style="margin: 0 0 6px 0;">Completely self-hosted with no recurring fees. Just $1 one-time + your own OpenAI API costs (typically $0.01-0.05 per interview).</p>
+          <p style="margin: 0;">Competitors charge $50-200/month for similar features. With Interview Assistant, you own it forever and control your data.</p>
         </div>
         <div style="margin-bottom: 14px;">
           <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Keyboard Shortcuts</div>
@@ -491,6 +503,13 @@
             <li>Ctrl+S saves screenshots for context, Ctrl+K gives immediate answers</li>
             <li>All conversations are saved to your session folder</li>
           </ul>
+        </div>
+        <div style="margin-top: 14px;">
+          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">API Key & Pricing</div>
+          <p style="margin: 0 0 8px 0;">You need your own OpenAI API key to use this app.</p>
+          <p style="margin: 0 0 8px 0;"><strong>How to get one:</strong> Go to platform.openai.com → Sign up → API Keys → Create new key (starts with sk-)</p>
+          <p style="margin: 0 0 8px 0;"><strong>Why this is cheap:</strong> Similar apps charge $30-100/month. With your own API key, you pay only for what you use!</p>
+          <p style="margin: 0;"><strong>Example costs:</strong> 50 AI responses ≈ $0.15-$0.30 • Full 2-hour interview ≈ $0.50-$1.00 • That's 10-100x cheaper than competitors! Add $5-10 credit to start.</p>
         </div>
       </div>
     </div>

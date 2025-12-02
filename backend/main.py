@@ -249,6 +249,22 @@ async def validate_api_key(data: Dict[str, str]):
         else:
             return {"valid": False, "error": f"API key validation failed: {error_msg[:100]}"}
 
+# License validation - key stored securely on backend
+VALID_LICENSE_KEYS = set()  # Scrubbed from history
+
+@app.post('/validate-license')
+async def validate_license(data: Dict[str, str]):
+    """Validate license key for full session access"""
+    license_key = data.get('license_key', '').strip()
+    
+    if not license_key:
+        return {"valid": False, "status": "empty"}
+    
+    if license_key in VALID_LICENSE_KEYS:
+        return {"valid": True, "status": "valid"}
+    
+    return {"valid": False, "status": "invalid"}
+
 @app.post('/profile')
 async def post_profile(data: Dict[str, Any]):
     global profile_cache
