@@ -9,6 +9,30 @@
 
   <link rel="stylesheet" href="setup.css">
   <style>
+    /* Custom Scrollbar - Minimal & Slim */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    ::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+    /* Firefox scrollbar */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    }
+
     body {
       background-color: rgba(30, 30, 30, 0.95);
       color: #ffffff;
@@ -366,7 +390,10 @@
     <div style="width: 100%; height: 100%; display: flex; flex-direction: column; padding: 25px 25px 15px 25px; box-sizing: border-box;">
       <form autocomplete="off" style="display: flex; flex-direction: column; gap: 12px; flex: 1; align-items: stretch; max-width: 100%;">
         <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
-          <button id="btn-past-sessions" type="button" style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.5); font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Past Sessions</button>
+          <div style="display: flex; gap: 10px;">
+            <button id="btn-past-sessions" type="button" style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.5); font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Past Sessions</button>
+            <button id="btn-guide" type="button" style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.5); font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Guide</button>
+          </div>
         </div>
         <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch;"><label
             style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500;">Session Name</label>
@@ -410,6 +437,71 @@
       </div>
       <div id="past-sessions-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
         <div style="color: rgba(255,255,255,0.4); font-size: 12px; text-align: center; padding: 20px;">Loading...</div>
+      </div>
+    </div>
+  </div>
+  <!-- Guide Modal -->
+  <div id="guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.9); z-index: 10001; align-items: center; justify-content: center;">
+    <div style="background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 20px; max-width: 620px; width: 95%; max-height: 80vh; display: flex; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <span style="color: rgba(255,255,255,0.6); font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Guide</span>
+        <button id="close-guide" type="button" style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 20px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+      </div>
+      <div style="flex: 1; overflow-y: auto; color: rgba(255,255,255,0.7); font-size: 12px; line-height: 1.6; padding-right: 8px;">
+        <div style="margin-bottom: 14px;">
+          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">About</div>
+          <p style="margin: 0;">Interview Assistant helps you ace technical interviews by transcribing audio, capturing screenshots, and generating AI-powered responses using your resume and job description context.</p>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Keyboard Shortcuts</div>
+          <div style="display: grid; grid-template-columns: auto 1fr; gap: 5px 14px;">
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+R</span><span>Start/Stop System Audio Recording</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+M</span><span>Start/Stop Microphone Recording</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+K</span><span>Screenshot + Immediate AI Solution (no context save)</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+S</span><span>Screenshot + Save to Context for Future Use</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Enter</span><span>Process Transcript with AI</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+L</span><span>Clear Transcript</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Q</span><span>Minimize to Stealth Mode</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift+Q</span><span>Close App</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift++</span><span>Increase App Size</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift+-</span><span>Decrease App Size</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift+O</span><span>Return to Original Size</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Alt+↑↓←→</span><span>Move App in Arrow Direction</span>
+            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+H</span><span>Toggle Window Visibility</span>
+          </div>
+        </div>
+        <div style="margin-bottom: 14px;">
+          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">How It Works</div>
+          <ol style="margin: 0; padding-left: 20px;">
+            <li>Create a session with your resume, API key, and job description</li>
+            <li>Click Start to begin the session timer</li>
+            <li>Use System Audio (Ctrl+R) to capture interviewer's questions</li>
+            <li>Use Microphone (Ctrl+M) to capture your own speech</li>
+            <li>Use Screenshot (Ctrl+K) for instant AI solutions without saving</li>
+            <li>Use Screenshot (Ctrl+S) to save context for later AI reference</li>
+            <li>AI generates responses as if YOU are answering, using your resume</li>
+          </ol>
+        </div>
+        <div>
+          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Tips</div>
+          <ul style="margin: 0; padding-left: 20px;">
+            <li>Use Ctrl+Q to minimize to stealth mode - invisible to screen sharing</li>
+            <li>Use Ctrl+Shift++ and Ctrl+Shift+- to resize the app</li>
+            <li>Use Ctrl+Alt+Arrow keys to move the app around</li>
+            <li>Ctrl+S saves screenshots for context, Ctrl+K gives immediate answers</li>
+            <li>All conversations are saved to your session folder</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Custom Alert/Confirm Modal -->
+  <div id="custom-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.9); z-index: 10002; align-items: center; justify-content: center;">
+    <div style="background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 20px; max-width: 400px; width: 90%; display: flex; flex-direction: column; gap: 15px;">
+      <div id="custom-modal-message" style="color: rgba(255,255,255,0.8); font-size: 13px; line-height: 1.5; text-align: center;"></div>
+      <div id="custom-modal-buttons" style="display: flex; gap: 10px; justify-content: center;">
+        <button id="custom-modal-ok" style="padding: 10px 24px; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">OK</button>
+        <button id="custom-modal-cancel" style="display: none; padding: 10px 24px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.5); font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Cancel</button>
       </div>
     </div>
   </div>

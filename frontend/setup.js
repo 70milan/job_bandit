@@ -10,6 +10,40 @@ let currentSessionName = null;  // Track current session name
 // Session lock - prevents actions until Start is clicked
 window.isSessionActive = false;
 
+// Custom styled alert/confirm functions
+function showCustomModal(message, isConfirm = false) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('custom-modal');
+        const msgEl = document.getElementById('custom-modal-message');
+        const okBtn = document.getElementById('custom-modal-ok');
+        const cancelBtn = document.getElementById('custom-modal-cancel');
+        
+        msgEl.innerHTML = message.replace(/\n/g, '<br>');
+        cancelBtn.style.display = isConfirm ? 'block' : 'none';
+        modal.style.display = 'flex';
+        
+        const handleOk = () => {
+            modal.style.display = 'none';
+            okBtn.removeEventListener('click', handleOk);
+            cancelBtn.removeEventListener('click', handleCancel);
+            resolve(true);
+        };
+        
+        const handleCancel = () => {
+            modal.style.display = 'none';
+            okBtn.removeEventListener('click', handleOk);
+            cancelBtn.removeEventListener('click', handleCancel);
+            resolve(false);
+        };
+        
+        okBtn.addEventListener('click', handleOk);
+        cancelBtn.addEventListener('click', handleCancel);
+    });
+}
+
+window.customAlert = (msg) => showCustomModal(msg, false);
+window.customConfirm = (msg) => showCustomModal(msg, true);
+
 function showSessionError() {
   const popup = document.getElementById('session-error-popup');
   if (popup) {
@@ -158,11 +192,37 @@ function initSession() {
             }
         };
     }
+    
+    // Guide button and modal
+    const guideBtn = document.getElementById('btn-guide');
+    const guideModal = document.getElementById('guide-modal');
+    const closeGuide = document.getElementById('close-guide');
+    
+    if (guideBtn) {
+        guideBtn.onclick = () => {
+            guideModal.style.display = 'flex';
+        };
+    }
+    
+    if (closeGuide) {
+        closeGuide.onclick = () => {
+            guideModal.style.display = 'none';
+        };
+    }
+    
+    // Close guide modal when clicking outside
+    if (guideModal) {
+        guideModal.onclick = (e) => {
+            if (e.target === guideModal) {
+                guideModal.style.display = 'none';
+            }
+        };
+    }
 }
 
 // Open a past session (placeholder - just shows session name for now)
 window.openPastSession = function(sessionName) {
-    alert(`Session: ${sessionName}\n\nNote: Loading past sessions is not yet implemented. This will show session details in a future update.`);
+    customAlert(`Session: ${sessionName}\n\nNote: Loading past sessions is not yet implemented. This will show session details in a future update.`);
 };
 
 async function handleCreateSession() {
@@ -298,7 +358,7 @@ async function handleCreateSession() {
 
 function startSessionTimer() {
     if (!sessionCreated) {
-        alert('Create a session first!');
+        customAlert('Create a session first!');
         return;
     }
 
@@ -329,7 +389,7 @@ function startSessionTimer() {
             timerInterval = null;
             timerText.innerText = `0:00:00`;
             timerDot.className = 'session-indicator';
-            alert('Session time expired! (2 hours)');
+            customAlert('Session time expired! (2 hours)');
             stopBtn.classList.add('stopped');
             startBtn.classList.remove('active');
             statusText.innerText = 'Session Expired';
@@ -367,10 +427,10 @@ function stopSessionTimer() {
     statusText.innerText = 'Session Paused';
 }
 
-function endSession() {
+async function endSession() {
     if (!sessionCreated) return;
 
-    if (confirm("End current session and create a new one?")) {
+    if (await customConfirm("End current session and create a new one?")) {
         // Save session before ending
         if (currentSessionName) {
             fetch('http://127.0.0.1:5050/session/end', {
