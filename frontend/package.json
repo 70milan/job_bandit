@@ -1,12 +1,13 @@
 {
   "name": "echohire-frontend",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Electron-based UI for JobAndit.",
   "main": "main.js",
   "scripts": {
     "start": "npm run electron",
     "start:dev": "concurrently \"npm run electron\" \"cd ../backend && uvicorn main:app --port 5050\"",
     "electron": "electron .",
+    "prebuild": "node bump-version.js",
     "build": "electron-builder"
   },
   "build": {

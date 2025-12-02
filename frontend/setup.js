@@ -5,6 +5,7 @@ let sessionEndTime = null;
 let timerInterval = null;
 let sessionCreated = false;
 let sessionTimerStarted = false;
+let currentSessionName = null;  // Track current session name
 
 // Session lock - prevents actions until Start is clicked
 window.isSessionActive = false;
@@ -23,26 +24,56 @@ function showSessionError() {
 
 window.showSessionError = showSessionError;
 
+// Global validation function
+function checkAllInputs() {
+    const sessionNameInput = document.getElementById('setup-session-name');
+    const fileInput = document.getElementById('setup-resume');
+    const apiKeyInput = document.getElementById('setup-apikey');
+    const jdInput = document.getElementById('setup-jobdesc');
+    const startBtn = document.getElementById('btn-start-session');
+    
+    const hasSessionName = sessionNameInput && sessionNameInput.value.trim().length > 0;
+    const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+    const hasApiKey = apiKeyInput && apiKeyInput.value.trim().length > 0;
+    const hasJD = jdInput && jdInput.value.trim().length > 0;
+    
+    if (hasSessionName && hasFile && hasApiKey && hasJD && startBtn) {
+        startBtn.disabled = false;
+        startBtn.style.opacity = '1';
+    } else if (startBtn) {
+        startBtn.disabled = true;
+        startBtn.style.opacity = '0.5';
+    }
+}
+
 // Initialize immediately since script is loaded at end of body
 initSession();
 
 function initSession() {
+        const sessionNameInput = document.getElementById('setup-session-name');
         const fileInput = document.getElementById('setup-resume');
         const apiKeyInput = document.getElementById('setup-apikey');
         const jdInput = document.getElementById('setup-jobdesc');
         const startBtn = document.getElementById('btn-start-session');
+        const resumeFilename = document.getElementById('resume-filename');
         
-        function checkAllInputs() {
-            const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
-            const hasApiKey = apiKeyInput && apiKeyInput.value.trim().length > 0;
-            const hasJD = jdInput && jdInput.value.trim().length > 0;
-            
-            if (hasFile && hasApiKey && hasJD && startBtn) {
-                startBtn.disabled = false;
-                startBtn.style.opacity = '1';
-            }
+        // Update filename display when file is selected
+        if (fileInput && resumeFilename) {
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files && fileInput.files.length > 0) {
+                    resumeFilename.textContent = fileInput.files[0].name;
+                    resumeFilename.style.color = 'rgba(100, 255, 150, 0.9)';
+                } else {
+                    resumeFilename.textContent = 'No file chosen';
+                    resumeFilename.style.color = 'rgba(255, 255, 255, 0.4)';
+                }
+                checkAllInputs();
+            });
         }
         
+        if (sessionNameInput) {
+            sessionNameInput.addEventListener('input', checkAllInputs);
+        }
         if (fileInput) {
             fileInput.addEventListener('change', function() {
                 if (fileInput.files && fileInput.files.length > 0) {
@@ -80,11 +111,25 @@ function initSession() {
 }
 
 async function handleCreateSession() {
+    const sessionNameInput = document.getElementById('setup-session-name');
     const fileInput = document.getElementById('setup-resume');
     const apiKeyInput = document.getElementById('setup-apikey');
     const jdInput = document.getElementById('setup-jobdesc');
     const status = document.getElementById('setup-status');
     const startBtn = document.getElementById('btn-start-session');
+
+    // Validate session name
+    const sessionName = sessionNameInput ? sessionNameInput.value.trim() : '';
+    if (!sessionName) {
+        status.innerText = "Please enter a session name";
+        status.style.color = "#ff6b6b";
+        startBtn.disabled = true;
+        startBtn.style.opacity = '0.5';
+        return;
+    }
+    
+    // Sanitize session name (remove invalid folder characters)
+    const sanitizedSessionName = sessionName.replace(/[<>:"/\\|?*]/g, '_');
 
     if (!fileInput.files || fileInput.files.length === 0) {
         status.innerText = "Please upload a resume (.docx)";
@@ -115,7 +160,22 @@ async function handleCreateSession() {
         startBtn.disabled = true;
         status.style.color = "#aaa";
 
-        // 0. Validate API Key first
+        // 0. Create session folder first
+        status.innerText = "Creating session...";
+        const createSessionRes = await fetch('http://127.0.0.1:5050/session/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_name: sanitizedSessionName })
+        });
+        const createSessionJson = await createSessionRes.json();
+        
+        if (createSessionJson.status !== 'ok') {
+            throw new Error(createSessionJson.error || "Failed to create session");
+        }
+        
+        currentSessionName = sanitizedSessionName;
+
+        // 1. Validate API Key
         status.innerText = "Validating API key...";
         const validateRes = await fetch('http://127.0.0.1:5050/validate-api-key', {
             method: 'POST',
@@ -128,45 +188,41 @@ async function handleCreateSession() {
             throw new Error(validateJson.error || "Invalid API key");
         }
 
-        // 1. Upload Resume
+        // 2. Upload Resume (to session folder)
         status.innerText = "Uploading resume...";
         const fd = new FormData();
         fd.append('file', fileInput.files[0]);
+        fd.append('session_name', sanitizedSessionName);
 
-        const upRes = await fetch('http://127.0.0.1:5050/profile/resume', { method: 'POST', body: fd });
+        const upRes = await fetch('http://127.0.0.1:5050/session/resume', { method: 'POST', body: fd });
         const upJson = await upRes.json();
 
         if (upJson.status !== 'ok') {
             throw new Error("Resume upload failed: " + (upJson.error || 'Unknown error'));
         }
 
-        // 2. Refresh Profile to get extracted text
-        status.innerText = "Processing profile...";
-        const refreshRes = await fetch('http://127.0.0.1:5050/profile');
-        if (!refreshRes.ok) throw new Error("Failed to fetch profile");
-        const currentProfile = await refreshRes.json();
-
-        // 3. Update with API key and Job Description
-        const updatedProfile = {
-            ...currentProfile,
+        // 3. Save session data (job description, api key, etc.)
+        status.innerText = "Saving session data...";
+        const sessionData = {
+            session_name: sanitizedSessionName,
             openai_api_key: apiKey,
-            job_description: jdInput.value.trim()
+            job_description: jdInput.value.trim(),
+            resume_text: upJson.resume_text || '',
+            created_at: new Date().toISOString()
         };
 
-        // 4. Save complete profile
-        status.innerText = "Saving session...";
-        const saveRes = await fetch('http://127.0.0.1:5050/profile', {
+        const saveRes = await fetch('http://127.0.0.1:5050/session/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updatedProfile)
+            body: JSON.stringify(sessionData)
         });
 
         const saveJson = await saveRes.json();
         if (saveJson.status !== 'ok') {
-            throw new Error("Profile save failed: " + (saveJson.error || 'Unknown error'));
+            throw new Error("Session save failed: " + (saveJson.error || 'Unknown error'));
         }
 
-        // 5. Session created - hide overlay
+        // 4. Session created - hide overlay
         sessionCreated = true;
         status.innerText = "Session created!";
         status.style.color = "#28a745";
@@ -260,10 +316,20 @@ function endSession() {
     if (!sessionCreated) return;
 
     if (confirm("End current session and create a new one?")) {
+        // Save session before ending
+        if (currentSessionName) {
+            fetch('http://127.0.0.1:5050/session/end', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_name: currentSessionName })
+            }).catch(() => {});
+        }
+        
         stopSessionTimer();
         sessionCreated = false;
         window.isSessionActive = false;
         sessionEndTime = null;
+        currentSessionName = null;
 
         // Reset timer display
         const timerText = document.getElementById('session-timer-text');
@@ -278,15 +344,53 @@ function endSession() {
         stopBtn.classList.remove('stopped');
         statusText.innerText = 'Ready';
 
-        // Show setup overlay again
+        // Show setup overlay again and reset to original state
         const overlay = document.getElementById('setup-overlay');
+        const sessionNameInput = document.getElementById('setup-session-name');
         const fileInput = document.getElementById('setup-resume');
+        const apiKeyInput = document.getElementById('setup-apikey');
         const jdInput = document.getElementById('setup-jobdesc');
         const status = document.getElementById('setup-status');
+        const sessionStartBtn = document.getElementById('btn-start-session');
 
         overlay.style.display = 'flex';
+        
+        // Reset session name
+        if (sessionNameInput) sessionNameInput.value = '';
+        
+        // Reset file input - clear value and remove 'selected' class (back to red)
         fileInput.value = '';
-        jdInput.value = '';
+        fileInput.classList.remove('selected');
+        
+        // Reset filename display
+        const resumeFilename = document.getElementById('resume-filename');
+        if (resumeFilename) {
+            resumeFilename.textContent = 'No file chosen';
+            resumeFilename.style.color = 'rgba(255, 255, 255, 0.4)';
+        }
+        
+        // Reset other inputs
+        if (apiKeyInput) apiKeyInput.value = '';
+        if (jdInput) jdInput.value = '';
         status.innerText = '';
+        status.style.color = '#aaa';
+        
+        // Reset the start button to disabled state (original state)
+        if (sessionStartBtn) {
+            sessionStartBtn.disabled = true;
+            sessionStartBtn.style.opacity = '0.5';
+        }
+        
+        // Re-attach click handler to ensure it works
+        sessionStartBtn.onclick = handleCreateSession;
+        
+        // Clear conversation history on backend
+        fetch('http://127.0.0.1:5050/conversation/clear', { method: 'POST' }).catch(() => {});
+        
+        // Clear transcript and response areas
+        const transcriptArea = document.getElementById('transcript-area');
+        const responseArea = document.getElementById('response-area');
+        if (transcriptArea) transcriptArea.innerHTML = '';
+        if (responseArea) responseArea.innerHTML = '';
     }
 }

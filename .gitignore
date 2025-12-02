@@ -31,6 +31,7 @@ env/
 
 # User data and sensitive files
 backend/resumes/
+backend/sessions/
 backend/profile.json
 backend/user_profile.json
 profile.json
@@ -39,6 +40,7 @@ backend/.env
 .env
 *.env
 .env.*
+backend/$null
 
 # API Keys and secrets
 **/api_key*

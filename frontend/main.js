@@ -247,8 +247,8 @@ app.whenReady().then(() => {
     `);
   });
 
-  /* ---- Ctrl+G: Generate AI ---- */
-  globalShortcut.register('CommandOrControl+G', () => {
+  /* ---- Ctrl+Enter: Generate AI ---- */
+  globalShortcut.register('CommandOrControl+Return', () => {
     if (!win) return;
     console.log('🤖 Generate AI Triggered');
     win.webContents.executeJavaScript(`
@@ -268,25 +268,34 @@ app.whenReady().then(() => {
   /* ---- Ctrl+K: Capture Screen ---- */
   globalShortcut.register('CommandOrControl+K', () => {
     if (!win) return;
-    console.log('📸 Screen Capture Triggered');
+    console.log('Screen Capture Triggered');
     win.webContents.executeJavaScript(`
-      if (window.captureScreen) { window.captureScreen(); }
+      if (window.captureScreen) { window.captureScreen(false); }
+    `);
+  });
+    /* ---- Ctrl+S: Capture Screen + Save Context ---- */
+  globalShortcut.register('CommandOrControl+S', () => {
+    if (!win) return;
+    console.log('Screen Capture Triggered (with context)');
+    win.webContents.executeJavaScript(`
+      if (window.captureScreen) { window.captureScreen(true); }
     `);
   });
 
   /* ---- Ctrl+Q: Toggle Mini Mode ---- */
   globalShortcut.register('CommandOrControl+Q', () => {
     if (!win) return;
-    const { width: sw } = screen.getPrimaryDisplay().workAreaSize;
     const [x, y] = win.getPosition();
 
     if (!isMiniMode) {
-      // Switch to Mini Mode
-      win.setBounds({ x, y, width: 60, height: 60 });
+      // Switch to Mini Mode - small floating box
+      win.setOpacity(1.0); // Fully opaque
+      win.setBounds({ x, y, width: 28, height: 28 });
       win.webContents.executeJavaScript(`document.body.classList.add('mini');`);
       isMiniMode = true;
     } else {
       // Expand back
+      win.setOpacity(0.95); // Restore slight transparency
       const bounds = centerTop(800, 600);
       win.setBounds(bounds);
       win.webContents.executeJavaScript(`document.body.classList.remove('mini');`);

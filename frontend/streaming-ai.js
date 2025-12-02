@@ -25,7 +25,8 @@ function initializeStreamingAI() {
         try {
             const requestBody = {
                 transcript: transcript || 'Analyze this screenshot',
-                role: 'data engineer'
+                role: 'data engineer',
+                save_to_context: true
             };
 
             if (capturedScreenshot) {
