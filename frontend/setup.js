@@ -27,15 +27,18 @@ async function validateLicense(key) {
     if (!key || key.trim() === '') return 'empty';
     
     try {
+        console.log('[DEBUG] Calling validate-license endpoint...');
         const res = await fetch('http://127.0.0.1:5050/validate-license', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ license_key: key.trim() })
         });
+        console.log('[DEBUG] Response status:', res.status);
         const data = await res.json();
+        console.log('[DEBUG] Response data:', data);
         return data.status; // 'valid', 'invalid', or 'empty'
     } catch (e) {
-        console.error('License validation error:', e);
+        console.error('[DEBUG] License validation error:', e);
         // If backend is down, allow demo mode
         return 'empty';
     }
@@ -157,10 +160,16 @@ function initSession() {
         const startBtn = document.getElementById('btn-start-session');
         const resumeFilename = document.getElementById('resume-filename');
         
+        console.log('[DEBUG] initSession: fileInput found?', !!fileInput);
+        console.log('[DEBUG] initSession: resumeFilename found?', !!resumeFilename);
+        
         // Update filename display when file is selected
         if (fileInput && resumeFilename) {
             fileInput.addEventListener('change', () => {
+                console.log('[DEBUG] File input changed!');
+                console.log('[DEBUG] Files:', fileInput.files);
                 if (fileInput.files && fileInput.files.length > 0) {
+                    console.log('[DEBUG] Selected file:', fileInput.files[0].name);
                     resumeFilename.textContent = fileInput.files[0].name;
                     resumeFilename.style.color = 'rgba(100, 255, 150, 0.9)';
                 } else {
@@ -188,13 +197,44 @@ function initSession() {
         if (jdInput) {
             jdInput.addEventListener('input', checkAllInputs);
         }
+        
+        // Check for saved valid license - grey out and disable if already validated
+        const licenseInput = document.getElementById('setup-license');
+        const savedLicense = localStorage.getItem('valid_license_key');
+        const licenseBadge = document.getElementById('license-status-badge');
+        
+        if (savedLicense && licenseInput) {
+            // License already validated - show as disabled/greyed out
+            licenseInput.value = 'License Active';
+            licenseInput.disabled = true;
+            licenseInput.style.opacity = '0.5';
+            licenseInput.style.cursor = 'not-allowed';
+            console.log('[DEBUG] Valid license found in localStorage - field disabled');
+            
+            // Show Licensed badge
+            if (licenseBadge) {
+                licenseBadge.textContent = 'Licensed';
+                licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
+            }
+        } else {
+            // Show Unlicensed badge
+            if (licenseBadge) {
+                licenseBadge.textContent = 'Demo';
+                licenseBadge.style.color = 'rgba(255, 200, 100, 0.7)';
+            }
+        }
+        
     const endBtn = document.getElementById('btn-session-end');
     const startTimerBtn = document.getElementById('btn-session-start');
     const stopTimerBtn = document.getElementById('btn-session-stop');
 
     // Overlay is visible by default - waiting for session creation
+    console.log('[DEBUG] initSession: startBtn found?', !!startBtn);
     if (startBtn) {
         startBtn.onclick = handleCreateSession;
+        console.log('[DEBUG] initSession: onclick handler attached to Start Session button');
+    } else {
+        console.error('[DEBUG] initSession: btn-start-session NOT FOUND!');
     }
 
     if (endBtn) {
@@ -321,6 +361,7 @@ window.openPastSession = function(sessionName) {
 };
 
 async function handleCreateSession() {
+    console.log('[DEBUG] Start Session button clicked!');
     const sessionNameInput = document.getElementById('setup-session-name');
     const fileInput = document.getElementById('setup-resume');
     const apiKeyInput = document.getElementById('setup-apikey');
@@ -330,6 +371,7 @@ async function handleCreateSession() {
 
     // Validate session name
     const sessionName = sessionNameInput ? sessionNameInput.value.trim() : '';
+    console.log('[DEBUG] Session name:', sessionName);
     if (!sessionName) {
         status.innerText = "Please enter a session name";
         status.style.color = "#ff6b6b";
@@ -373,8 +415,14 @@ async function handleCreateSession() {
     const licenseStatus = await validateLicense(licenseKey);
     console.log('[DEBUG] License status:', licenseStatus);
     
-    if (licenseStatus === 'invalid') {
-        status.innerText = "Invalid license key. Contact mjulez70@gmail.com";
+    // License validation logic:
+    // 1. Empty = demo mode (30s)
+    // 2. Valid = full session (2hrs) + save to localStorage
+    // 3. Invalid/partial = error, don't proceed
+    
+    if (licenseKey && licenseStatus === 'invalid') {
+        // User entered something but it's wrong - show error and stop
+        status.innerText = "Please enter a valid license key";
         status.style.color = "#ff4444";
         startBtn.disabled = false;
         startBtn.style.opacity = '1';
@@ -386,15 +434,21 @@ async function handleCreateSession() {
         isLicensed = true;
         SESSION_DURATION_MS = FULL_SESSION_DURATION_MS;
         console.log('[DEBUG] Licensed: Full 2-hour session');
+        // Save valid license to localStorage - never ask again
+        localStorage.setItem('valid_license_key', licenseKey);
+        status.innerText = "License validated - Full session";
+        status.style.color = "rgba(100, 255, 150, 0.9)";
     } else {
-        // Demo mode - show notification before proceeding
+        // Demo mode - no license provided
         isLicensed = false;
         SESSION_DURATION_MS = DEMO_SESSION_DURATION_MS;
         console.log('Demo mode: 30-second session');
-        // Temporarily show status instead of popup to debug
         status.innerText = "Demo mode: 30-second session";
         status.style.color = "rgba(255, 200, 100, 0.9)";
     }
+    
+    // Small delay so user sees the license status
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     try {
         startBtn.disabled = true;
