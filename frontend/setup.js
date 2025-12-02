@@ -1,7 +1,7 @@
 // Session Setup & Timer Logic
 
 const FULL_SESSION_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
-const DEMO_SESSION_DURATION_MS = 30 * 1000; // 30 seconds
+const DEMO_SESSION_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 let SESSION_DURATION_MS = DEMO_SESSION_DURATION_MS; // Default to demo
 let sessionEndTime = null;
 let timerInterval = null;
@@ -83,7 +83,7 @@ window.customConfirm = (msg) => showCustomModal(msg, true);
 
 // License prompt after demo expires
 async function showLicensePrompt() {
-    const result = await customConfirm('Demo session expired (30s).\n\nEnter a license key for full 2-hour sessions.\n\nClick OK to enter license, or Cancel to return to setup.');
+    const result = await customConfirm('Demo session expired (5 min).\n\nEnter a license key for full 2-hour sessions.\n\nClick OK to enter license, or Cancel to return to setup.');
     
     if (result) {
         // Show setup overlay again so user can enter license
@@ -410,41 +410,53 @@ async function handleCreateSession() {
 
     // Validate license
     const licenseInput = document.getElementById('setup-license');
-    const licenseKey = licenseInput ? licenseInput.value.trim() : '';
-    console.log('[DEBUG] License key:', licenseKey ? '(provided)' : '(empty)');
-    const licenseStatus = await validateLicense(licenseKey);
-    console.log('[DEBUG] License status:', licenseStatus);
+    const savedLicense = localStorage.getItem('valid_license_key');
     
-    // License validation logic:
-    // 1. Empty = demo mode (30s)
-    // 2. Valid = full session (2hrs) + save to localStorage
-    // 3. Invalid/partial = error, don't proceed
-    
-    if (licenseKey && licenseStatus === 'invalid') {
-        // User entered something but it's wrong - show error and stop
-        status.innerText = "Please enter a valid license key";
-        status.style.color = "#ff4444";
-        startBtn.disabled = false;
-        startBtn.style.opacity = '1';
-        return;
-    }
-    
-    // Set session duration based on license
-    if (licenseStatus === 'valid') {
+    // If license is already saved and validated, skip validation
+    if (savedLicense) {
         isLicensed = true;
         SESSION_DURATION_MS = FULL_SESSION_DURATION_MS;
-        console.log('[DEBUG] Licensed: Full 2-hour session');
-        // Save valid license to localStorage - never ask again
-        localStorage.setItem('valid_license_key', licenseKey);
+        console.log('[DEBUG] Using saved license - Full 2-hour session');
         status.innerText = "License validated - Full session";
         status.style.color = "rgba(100, 255, 150, 0.9)";
     } else {
-        // Demo mode - no license provided
-        isLicensed = false;
-        SESSION_DURATION_MS = DEMO_SESSION_DURATION_MS;
-        console.log('Demo mode: 30-second session');
-        status.innerText = "Demo mode: 30-second session";
-        status.style.color = "rgba(255, 200, 100, 0.9)";
+        // No saved license - check what user entered
+        const licenseKey = licenseInput ? licenseInput.value.trim() : '';
+        console.log('[DEBUG] License key:', licenseKey ? '(provided)' : '(empty)');
+        const licenseStatus = await validateLicense(licenseKey);
+        console.log('[DEBUG] License status:', licenseStatus);
+        
+        // License validation logic:
+        // 1. Empty = demo mode (5 min)
+        // 2. Valid = full session (2hrs) + save to localStorage
+        // 3. Invalid/partial = error, don't proceed
+        
+        if (licenseKey && licenseStatus === 'invalid') {
+            // User entered something but it's wrong - show error and stop
+            status.innerText = "Please enter a valid license key";
+            status.style.color = "#ff4444";
+            startBtn.disabled = false;
+            startBtn.style.opacity = '1';
+            return;
+        }
+        
+        // Set session duration based on license
+        if (licenseStatus === 'valid') {
+            isLicensed = true;
+            SESSION_DURATION_MS = FULL_SESSION_DURATION_MS;
+            console.log('[DEBUG] Licensed: Full 2-hour session');
+            // Save valid license to localStorage - never ask again
+            localStorage.setItem('valid_license_key', licenseKey);
+            status.innerText = "License validated - Full session";
+            status.style.color = "rgba(100, 255, 150, 0.9)";
+        } else {
+            // Demo mode - no license provided
+            isLicensed = false;
+            SESSION_DURATION_MS = DEMO_SESSION_DURATION_MS;
+            console.log('Demo mode: 5-minute session');
+            status.innerText = "Demo mode: 5-minute session";
+            status.style.color = "rgba(255, 200, 100, 0.9)";
+        }
     }
     
     // Small delay so user sees the license status
@@ -518,7 +530,7 @@ async function handleCreateSession() {
 
         // 4. Session created - hide overlay
         sessionCreated = true;
-        status.innerText = isLicensed ? "Session created!" : "Demo session created (30s)";
+        status.innerText = isLicensed ? "Session created!" : "Demo session created (5 min)";
         status.style.color = "rgba(100, 255, 150, 0.9)";
         
         // Update timer display to show correct duration
@@ -527,7 +539,7 @@ async function handleCreateSession() {
             if (isLicensed) {
                 timerText.innerText = '2:00:00';
             } else {
-                timerText.innerText = '0:00:30';
+                timerText.innerText = '0:05:00';
             }
         }
 
@@ -568,7 +580,7 @@ function startSessionTimer() {
     // Update button states
     startBtn.classList.add('active');
     stopBtn.classList.remove('stopped');
-    statusText.innerText = isLicensed ? 'Session Running' : 'Demo Mode (30s)';
+    statusText.innerText = isLicensed ? 'Session Running' : 'Demo Mode (5 min)';
 
     timerInterval = setInterval(() => {
         const remaining = sessionEndTime - Date.now();
