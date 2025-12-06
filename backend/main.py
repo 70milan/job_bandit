@@ -14,6 +14,51 @@ from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 from typing import Optional, Dict, Any
 
+# Token counting for cost estimation
+try:
+    import tiktoken
+    encoding = tiktoken.encoding_for_model("gpt-4o")
+except:
+    tiktoken = None
+    encoding = None
+    print("Warning: tiktoken not installed - cost estimation will be approximate")
+
+# Session usage tracking
+session_usage = {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_cost": 0.0,
+    "request_count": 0
+}
+
+# GPT pricing (per 1M tokens)
+PRICING = {
+    "gpt-4o": {"input": 2.50, "output": 10.00},
+    "gpt-3.5-turbo": {"input": 0.50, "output": 1.50}
+}
+
+def count_tokens(text: str) -> int:
+    """Count tokens in text"""
+    if encoding:
+        return len(encoding.encode(text))
+    return len(text) // 4  # Rough estimate
+
+def calculate_cost(input_tokens: int, output_tokens: int, model: str = "gpt-3.5-turbo") -> float:
+    """Calculate cost in dollars"""
+    pricing = PRICING.get(model, PRICING["gpt-3.5-turbo"])
+    input_cost = (input_tokens / 1_000_000) * pricing["input"]
+    output_cost = (output_tokens / 1_000_000) * pricing["output"]
+    return (input_cost + output_cost) * 1.15  # 15% buffer
+
+def update_usage(input_tokens: int, output_tokens: int, model: str = "gpt-3.5-turbo"):
+    """Update session usage stats"""
+    global session_usage
+    session_usage["input_tokens"] += input_tokens
+    session_usage["output_tokens"] += output_tokens
+    session_usage["total_cost"] += calculate_cost(input_tokens, output_tokens, model)
+    session_usage["request_count"] += 1
+    print(f"[USAGE] Total: ${session_usage['total_cost']:.4f} ({session_usage['request_count']} requests)")
+
 # Fix Unicode encoding for Windows console (prevents charmap errors with special characters)
 if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
@@ -527,6 +572,48 @@ async def list_sessions():
     except Exception as e:
         return {"sessions": [], "error": str(e)}
 
+
+@app.get('/session/load/{session_name}')
+async def load_session(session_name: str):
+    """Load a previous session's data"""
+    try:
+        session_dir = SESSIONS_DIR / session_name
+        session_file = session_dir / 'session.json'
+        
+        if not session_file.exists():
+            return {"status": "error", "error": "Session not found"}
+        
+        data = json.loads(session_file.read_text(encoding='utf-8'))
+        
+        return {
+            "status": "ok",
+            "session_name": session_name,
+            "resume_text": data.get('resume_text', ''),
+            "job_description": data.get('job_description', ''),
+            "created_at": data.get('created_at', '')
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.delete('/session/delete/{session_name}')
+async def delete_session(session_name: str):
+    """Delete a session and all its contents"""
+    try:
+        import shutil
+        session_dir = SESSIONS_DIR / session_name
+        
+        if not session_dir.exists():
+            return {"status": "error", "error": "Session not found"}
+        
+        shutil.rmtree(session_dir)
+        print(f"[SESSION] Deleted session: {session_name}")
+        
+        return {"status": "ok", "message": f"Session '{session_name}' deleted"}
+    except Exception as e:
+        print(f"[SESSION DELETE ERROR] {e}")
+        return {"status": "error", "error": str(e)}
+
 # ============ END SESSION MANAGEMENT ============
 
 
@@ -544,6 +631,24 @@ async def get_conversation_history():
     """Get current conversation history (for debugging)"""
     return {"history": conversation_history, "count": len(conversation_history)}
 
+
+@app.get('/usage')
+async def get_usage():
+    """Get current session API usage and cost"""
+    return session_usage
+
+
+@app.post('/usage/reset')
+async def reset_usage():
+    """Reset usage counters"""
+    global session_usage
+    session_usage = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_cost": 0.0,
+        "request_count": 0
+    }
+    return {"status": "ok", "message": "Usage reset"}
 
 @app.post('/profile/resume')
 async def upload_resume(file: UploadFile = File(...)):
@@ -756,8 +861,14 @@ async def stream_ai_response(req: AIRequest):
             else:
                 print(f"[STREAM] Skipped saving to history (save_to_context=False)")
             
-            # Send completion signal
-            yield f"data: {json.dumps({'done': True})}\n\n"
+            # Calculate and track usage
+            input_text = "\n".join([m.get('content', '') if isinstance(m.get('content'), str) else str(m.get('content', '')) for m in messages])
+            input_tokens = count_tokens(input_text)
+            output_tokens = count_tokens(full_response)
+            update_usage(input_tokens, output_tokens, model)
+            
+            # Send completion signal with usage info
+            yield f"data: {json.dumps({'done': True, 'usage': session_usage})}\n\n"
             
         except Exception as e:
             print(f"Streaming AI Error: {e}")
