@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Codevode</title>
+  <title>Windows Command Controller</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
@@ -14,19 +14,24 @@
       width: 4px;
       height: 4px;
     }
+
     ::-webkit-scrollbar-track {
       background: transparent;
     }
+
     ::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.15);
       border-radius: 4px;
     }
+
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.25);
     }
+
     ::-webkit-scrollbar-corner {
       background: transparent;
     }
+
     /* Firefox scrollbar */
     * {
       scrollbar-width: thin;
@@ -387,17 +392,24 @@
         <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
     </div>
-    <span id="license-status-badge" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; z-index: 10001;"></span>
-    <div style="width: 100%; height: 100%; display: flex; flex-direction: column; padding: 25px 25px 15px 25px; box-sizing: border-box;">
-      <form autocomplete="off" style="display: flex; flex-direction: column; gap: 12px; flex: 1; align-items: stretch; max-width: 100%;">
+    <span id="license-status-badge"
+      style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; z-index: 10001;"></span>
+    <div
+      style="width: 100%; height: 100%; display: flex; flex-direction: column; padding: 25px 25px 15px 25px; box-sizing: border-box;">
+      <form autocomplete="off"
+        style="display: flex; flex-direction: column; gap: 12px; flex: 1; align-items: stretch; max-width: 100%;">
         <div style="width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: flex-start;">
           <div style="display: flex; gap: 10px;">
-            <button id="btn-past-sessions" type="button" style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.5); font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Past Sessions</button>
-            <button id="btn-guide" type="button" style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.5); font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Guide</button>
+            <button id="btn-past-sessions" type="button"
+              style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.5); font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Past
+              Sessions</button>
+            <button id="btn-guide" type="button"
+              style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.5); font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Guide</button>
           </div>
         </div>
         <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch;"><label
-            style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500;">Session Name</label>
+            style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500;">Session
+            Name</label>
           <input type="text" id="setup-session-name" placeholder="e.g., Google_DataEngineer_Dec2025" autocomplete="off"
             style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; background: rgba(255, 255, 255, 0.03); color: #fff; font-family: 'Segoe UI', Arial; font-size: 14px; outline: none;" />
         </div>
@@ -406,20 +418,28 @@
           <div style="display: flex; align-items: center; gap: 10px;">
             <input type="file" id="setup-resume" accept=".docx" style="display: none;" />
             <button type="button" id="resume-btn" onclick="document.getElementById('setup-resume').click()"
-              style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.6); font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;">Choose File</button>
+              style="padding: 10px 16px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.6); font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;">Choose
+              File</button>
             <span id="resume-filename" style="color: rgba(255, 255, 255, 0.4); font-size: 12px;">No file chosen</span>
           </div>
         </div>
         <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch;"><label
-            style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 6px;">OpenAI API Key
-            <span id="apikey-info" style="cursor: pointer; color: rgba(100, 255, 150, 0.6); font-size: 10px; font-weight: normal;" title="API Key Info">(?)</span></label>
+            style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 6px;">OpenAI
+            API Key
+            <span id="apikey-info"
+              style="cursor: pointer; color: rgba(100, 255, 150, 0.6); font-size: 10px; font-weight: normal;"
+              title="API Key Info">(?)</span></label>
           <input type="password" id="setup-apikey" placeholder="sk-..." autocomplete="new-password"
             style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; background: rgba(255, 255, 255, 0.03); color: #fff; font-family: 'Segoe UI', Arial; font-size: 14px; outline: none;" />
         </div>
         <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch;"><label
-            style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 6px;">License Key
-            <span id="license-info" style="cursor: pointer; color: rgba(100, 255, 150, 0.6); font-size: 10px; font-weight: normal;" title="Get a license">(?)</span></label>
-          <input type="password" id="setup-license" placeholder="Optional - 5 min demo without license" autocomplete="off"
+            style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500; display: flex; align-items: center; gap: 6px;">License
+            Key
+            <span id="license-info"
+              style="cursor: pointer; color: rgba(100, 255, 150, 0.6); font-size: 10px; font-weight: normal;"
+              title="Get a license">(?)</span></label>
+          <input type="password" id="setup-license" placeholder="Optional - 5 min demo without license"
+            autocomplete="off"
             style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; background: rgba(255, 255, 255, 0.03); color: #fff; font-family: 'Segoe UI', Arial; font-size: 14px; outline: none;" />
         </div>
         <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch; flex: 1;"><label
@@ -432,16 +452,22 @@
         <button id="btn-start-session" type="button"
           style="width: 100%; box-sizing: border-box; padding: 12px 0; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; color: rgba(255, 255, 255, 0.5); font-weight: 500; cursor: pointer; font-size: 11px; transition: all 0.2s; letter-spacing: 1.5px; text-transform: uppercase;">Create
           Session</button>
-        <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 10px;"><span class="app-version"></span></div>
+        <div style="text-align: center; color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 10px;"><span
+            class="app-version"></span></div>
       </form>
     </div>
   </div>
   <!-- Past Sessions Modal -->
-  <div id="past-sessions-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.9); z-index: 10001; align-items: center; justify-content: center;">
-    <div style="background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 20px; max-width: 500px; width: 90%; max-height: 70vh; display: flex; flex-direction: column;">
+  <div id="past-sessions-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.9); z-index: 10001; align-items: center; justify-content: center;">
+    <div
+      style="background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 20px; max-width: 500px; width: 90%; max-height: 70vh; display: flex; flex-direction: column;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <span style="color: rgba(255,255,255,0.6); font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;">Past Sessions</span>
-        <button id="close-past-sessions" type="button" style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 18px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+        <span
+          style="color: rgba(255,255,255,0.6); font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;">Past
+          Sessions</span>
+        <button id="close-past-sessions" type="button"
+          style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 18px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
       </div>
       <div id="past-sessions-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
         <div style="color: rgba(255,255,255,0.4); font-size: 12px; text-align: center; padding: 20px;">Loading...</div>
@@ -449,42 +475,85 @@
     </div>
   </div>
   <!-- Guide Modal -->
-  <div id="guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.9); z-index: 10001; align-items: center; justify-content: center;">
-    <div style="background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 20px; max-width: 620px; width: 95%; max-height: 80vh; display: flex; flex-direction: column;">
+  <div id="guide-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.9); z-index: 10001; align-items: center; justify-content: center;">
+    <div
+      style="background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 20px; max-width: 620px; width: 95%; max-height: 80vh; display: flex; flex-direction: column;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <span style="color: rgba(255,255,255,0.6); font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Guide</span>
-        <button id="close-guide" type="button" style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 20px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+        <span
+          style="color: rgba(255,255,255,0.6); font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Guide</span>
+        <button id="close-guide" type="button"
+          style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 20px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
       </div>
-      <div style="flex: 1; overflow-y: auto; color: rgba(255,255,255,0.7); font-size: 12px; line-height: 1.6; padding-right: 8px;">
+      <div
+        style="flex: 1; overflow-y: auto; color: rgba(255,255,255,0.7); font-size: 12px; line-height: 1.6; padding-right: 8px;">
         <div style="margin-bottom: 14px;">
-          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">About</div>
-          <p style="margin: 0;">Interview Assistant helps you ace technical interviews by transcribing audio, capturing screenshots, and generating AI-powered responses and coding solutions using your resume and job description context.</p>
+          <div
+            style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+            About</div>
+          <p style="margin: 0;">Interview Assistant helps you ace technical interviews by transcribing audio, capturing
+            screenshots, and generating AI-powered responses and coding solutions using your resume and job description
+            context.</p>
         </div>
         <div style="margin-bottom: 14px;">
-          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Why This App?</div>
-          <p style="margin: 0 0 6px 0;">Completely self-hosted with no recurring fees. Just $1 one-time + your own OpenAI API costs (typically $0.01-0.05 per interview).</p>
-          <p style="margin: 0;">Competitors charge $50-200/month for similar features. With Interview Assistant, you own it forever and control your data.</p>
+          <div
+            style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+            Why This App?</div>
+          <p style="margin: 0 0 6px 0;">Completely self-hosted with no recurring fees. Just $1 one-time + your own
+            OpenAI API costs (typically $0.01-0.05 per interview).</p>
+          <p style="margin: 0;">Competitors charge $50-200/month for similar features. With Interview Assistant, you own
+            it forever and control your data.</p>
         </div>
         <div style="margin-bottom: 14px;">
-          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Keyboard Shortcuts</div>
+          <div
+            style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+            Keyboard Shortcuts</div>
           <div style="display: grid; grid-template-columns: auto 1fr; gap: 5px 14px;">
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+R</span><span>Start/Stop System Audio Recording</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+M</span><span>Start/Stop Microphone Recording</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+K</span><span>Screenshot + Immediate AI Solution (no context save)</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+S</span><span>Screenshot + Save to Context for Future Use</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Enter</span><span>Process Transcript with AI</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+L</span><span>Clear Transcript</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Q</span><span>Minimize to Stealth Mode</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift+Q</span><span>Close App</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift++</span><span>Increase App Size</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift+-</span><span>Decrease App Size</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift+O</span><span>Return to Original Size</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Alt+↑↓←→</span><span>Move App in Arrow Direction</span>
-            <span style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+H</span><span>Toggle Window Visibility</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+R</span><span>Start/Stop
+              System Audio Recording</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+M</span><span>Start/Stop
+              Microphone Recording</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+K</span><span>Screenshot
+              + Immediate AI Solution (no context save)</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+S</span><span>Screenshot
+              + Save to Context for Future Use</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Enter</span><span>Process
+              Transcript with AI</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+L</span><span>Clear
+              Transcript</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Q</span><span>Minimize
+              to Stealth Mode</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift+Q</span><span>Close
+              App</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift++</span><span>Increase
+              App Size</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift+-</span><span>Decrease
+              App Size</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Shift+O</span><span>Return
+              to Original Size</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+Alt+↑↓←→</span><span>Move
+              App in Arrow Direction</span>
+            <span
+              style="color: rgba(100,255,150,0.8); font-family: monospace; font-size: 11px;">Ctrl+H</span><span>Toggle
+              Window Visibility</span>
           </div>
         </div>
         <div style="margin-bottom: 14px;">
-          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">How It Works</div>
+          <div
+            style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+            How It Works</div>
           <ol style="margin: 0; padding-left: 20px;">
             <li>Create a session with your resume, API key, and job description</li>
             <li>Click Start to begin the session timer</li>
@@ -496,7 +565,9 @@
           </ol>
         </div>
         <div>
-          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Tips</div>
+          <div
+            style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+            Tips</div>
           <ul style="margin: 0; padding-left: 20px;">
             <li>Use Ctrl+Q to minimize to stealth mode - invisible to screen sharing</li>
             <li>Use Ctrl+Shift++ and Ctrl+Shift+- to resize the app</li>
@@ -506,22 +577,32 @@
           </ul>
         </div>
         <div style="margin-top: 14px;">
-          <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">API Key & Pricing</div>
+          <div
+            style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+            API Key & Pricing</div>
           <p style="margin: 0 0 8px 0;">You need your own OpenAI API key to use this app.</p>
-          <p style="margin: 0 0 8px 0;"><strong>How to get one:</strong> Go to platform.openai.com → Sign up → API Keys → Create new key (starts with sk-)</p>
-          <p style="margin: 0 0 8px 0;"><strong>Why this is cheap:</strong> Similar apps charge $30-100/month. With your own API key, you pay only for what you use!</p>
-          <p style="margin: 0;"><strong>Example costs:</strong> 50 AI responses ≈ $0.15-$0.30 • Full 2-hour interview ≈ $0.50-$1.00 • That's 10-100x cheaper than competitors! Add $5-10 credit to start.</p>
+          <p style="margin: 0 0 8px 0;"><strong>How to get one:</strong> Go to platform.openai.com → Sign up → API Keys
+            → Create new key (starts with sk-)</p>
+          <p style="margin: 0 0 8px 0;"><strong>Why this is cheap:</strong> Similar apps charge $30-100/month. With your
+            own API key, you pay only for what you use!</p>
+          <p style="margin: 0;"><strong>Example costs:</strong> 50 AI responses ≈ $0.15-$0.30 • Full 2-hour interview ≈
+            $0.50-$1.00 • That's 10-100x cheaper than competitors! Add $5-10 credit to start.</p>
         </div>
       </div>
     </div>
   </div>
   <!-- Custom Alert/Confirm Modal -->
-  <div id="custom-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.9); z-index: 10002; align-items: center; justify-content: center;">
-    <div style="background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 20px; max-width: 400px; width: 90%; display: flex; flex-direction: column; gap: 15px;">
-      <div id="custom-modal-message" style="color: rgba(255,255,255,0.8); font-size: 13px; line-height: 1.5; text-align: center;"></div>
+  <div id="custom-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.9); z-index: 10002; align-items: center; justify-content: center;">
+    <div
+      style="background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 20px; max-width: 400px; width: 90%; display: flex; flex-direction: column; gap: 15px;">
+      <div id="custom-modal-message"
+        style="color: rgba(255,255,255,0.8); font-size: 13px; line-height: 1.5; text-align: center;"></div>
       <div id="custom-modal-buttons" style="display: flex; gap: 10px; justify-content: center;">
-        <button id="custom-modal-ok" style="padding: 10px 24px; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">OK</button>
-        <button id="custom-modal-cancel" style="display: none; padding: 10px 24px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.5); font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Cancel</button>
+        <button id="custom-modal-ok"
+          style="padding: 10px 24px; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">OK</button>
+        <button id="custom-modal-cancel"
+          style="display: none; padding: 10px 24px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.5); font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s;">Cancel</button>
       </div>
     </div>
   </div>
@@ -575,11 +656,11 @@
   </div>
   <script>
     const { ipcRenderer } = require('electron');
-    
+
     // Set version from package.json automatically
     const appVersion = require('./package.json').version;
     document.querySelectorAll('.app-version').forEach(el => el.textContent = 'v' + appVersion);
-    
+
     const transcriptArea = document.getElementById('transcript-area');
     const responseArea = document.getElementById('response-area');
     const transcriptSection = document.getElementById('transcript-section');
@@ -895,7 +976,7 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0);
 
-        capturedScreenshot = canvas.toDataURL('image/jpeg', 0.8);
+        capturedScreenshot = canvas.toDataURL('image/jpeg', 0.70);
 
         stream.getTracks().forEach(track => track.stop());
 

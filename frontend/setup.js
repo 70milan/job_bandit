@@ -446,7 +446,8 @@ window.openPastSession = async function (sessionName) {
                 openai_api_key: apiKey,
                 job_description: finalJD,
                 resume_text: sessionData.resume_text,
-                created_at: now.toISOString()
+                created_at: now.toISOString(),
+                text_model: window.selectedModel || 'gpt-3.5-turbo'
             })
         });
 
@@ -454,6 +455,22 @@ window.openPastSession = async function (sessionName) {
 
         currentSessionName = newSessionName;
         sessionCreated = true;
+
+        // Restore model preference from past session
+        if (sessionData.text_model) {
+            window.selectedModel = sessionData.text_model;
+            const modelBtn = document.getElementById('model-selector-btn');
+            if (modelBtn) {
+                // Find model name from dropdown options
+                const modelOpt = document.querySelector(`[data-model="${sessionData.text_model}"]`);
+                if (modelOpt) {
+                    modelBtn.textContent = modelOpt.querySelector('div').textContent;
+                } else {
+                    modelBtn.textContent = sessionData.text_model.replace('gpt-', 'GPT-').replace('-turbo', '');
+                }
+            }
+            console.log('[SESSION] Restored model preference:', sessionData.text_model);
+        }
 
         // Update license badge
         const badge = document.getElementById('license-status-badge');
@@ -912,16 +929,84 @@ async function endSession() {
     }
 }
 
-// Inject API cost element into status bar dynamically
+// Inject API cost and Model Selector elements into status bar dynamically
 (function () {
     const statusBar = document.getElementById('status-bar');
     if (statusBar) {
         const rightSide = statusBar.querySelector('div:last-child');
         if (rightSide) {
+            // Model Selector
+            const modelDiv = document.createElement('div');
+            modelDiv.style.cssText = 'display: flex; align-items: center; gap: 6px; position: relative;';
+            modelDiv.innerHTML = `
+                <span style="color: #555;">Model:</span>
+                <button id="model-selector-btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; color: rgba(120, 200, 180, 0.85); padding: 2px 8px; font-size: 10px; cursor: pointer; font-weight: 500;">
+                    GPT-3.5
+                </button>
+                <div id="model-dropdown" style="display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 5px; background: rgba(30,30,30,0.98); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; min-width: 220px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                </div>
+            `;
+            rightSide.insertBefore(modelDiv, rightSide.firstChild);
+
+            // API Cost
             const apiCostDiv = document.createElement('div');
             apiCostDiv.style.cssText = 'display: flex; align-items: center; gap: 6px; margin-left: 10px;';
-            apiCostDiv.innerHTML = '<span style="color: #555;">API:</span><span id="api-cost" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">$0.00</span>';
+            apiCostDiv.innerHTML = '<span style="color: #555;">API Approx.:</span><span id="api-cost" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">$0.00</span>';
             rightSide.insertBefore(apiCostDiv, rightSide.lastChild);
         }
+    }
+
+    // Initialize model selector
+    window.selectedModel = 'gpt-3.5-turbo';
+
+    const modelBtn = document.getElementById('model-selector-btn');
+    const modelDropdown = document.getElementById('model-dropdown');
+
+    if (modelBtn && modelDropdown) {
+        // Fetch models from backend
+        fetch('http://127.0.0.1:5050/models')
+            .then(res => res.json())
+            .then(data => {
+                if (data.models) {
+                    modelDropdown.innerHTML = data.models.map(m => `
+                        <div class="model-option" data-model="${m.id}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
+                            <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 500;">${m.name}</div>
+                            <div style="color: rgba(255,255,255,0.4); font-size: 9px; margin-top: 2px;">
+                                ${m.speed} · ${m.cost} · ${m.accuracy} — ${m.description}
+                            </div>
+                        </div>
+                    `).join('');
+
+                    // Add hover effect
+                    modelDropdown.querySelectorAll('.model-option').forEach(opt => {
+                        opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.08)');
+                        opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
+                        opt.addEventListener('click', () => {
+                            const modelId = opt.dataset.model;
+                            window.selectedModel = modelId;
+                            modelBtn.textContent = opt.querySelector('div').textContent;
+                            modelDropdown.style.display = 'none';
+                            console.log('[MODEL] Selected:', modelId);
+                        });
+                    });
+
+                    // Set default
+                    if (data.default) {
+                        window.selectedModel = data.default;
+                    }
+                }
+            })
+            .catch(e => console.error('Failed to load models:', e));
+
+        // Toggle dropdown
+        modelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modelDropdown.style.display = modelDropdown.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Close on outside click
+        document.addEventListener('click', () => {
+            modelDropdown.style.display = 'none';
+        });
     }
 })();

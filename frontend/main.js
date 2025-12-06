@@ -15,7 +15,7 @@ autoUpdater.autoInstallOnAppQuit = true;
 
 function showUpdateUI(type, version, percent = 0) {
   if (!win) return;
-  
+
   const html = `
     (function() {
       let el = document.getElementById('update-overlay');
@@ -114,7 +114,7 @@ autoUpdater.on('error', (err) => {
 
 function startBackend() {
   const isDev = !app.isPackaged;
-  
+
   if (isDev) {
     console.log('Development mode: assuming backend runs separately');
     return;
@@ -122,7 +122,7 @@ function startBackend() {
 
   const backendPath = path.join(process.resourcesPath, 'backend', 'interview-backend.exe');
   console.log('Starting backend from:', backendPath);
-  
+
   backendProcess = spawn(backendPath, [], {
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false,
@@ -181,11 +181,11 @@ function createWindow() {
 app.whenReady().then(() => {
   // Start backend first
   startBackend();
-  
+
   // Wait for backend to initialize
   setTimeout(() => {
     createWindow();
-    
+
     // Check for updates after window is created (only in production)
     if (app.isPackaged) {
       setTimeout(() => {
@@ -273,7 +273,7 @@ app.whenReady().then(() => {
       if (window.captureScreen) { window.captureScreen(false); }
     `);
   });
-    /* ---- Ctrl+S: Capture Screen + Save Context ---- */
+  /* ---- Ctrl+S: Capture Screen + Save Context ---- */
   globalShortcut.register('CommandOrControl+S', () => {
     if (!win) return;
     console.log('Screen Capture Triggered (with context)');
@@ -348,7 +348,7 @@ app.whenReady().then(() => {
   /* ---- Tray ---- */
   const iconPath = path.join(__dirname, 'icon.png');
   tray = new Tray(nativeImage.createFromPath(iconPath));
-  tray.setToolTip('JobAndit');
+  tray.setToolTip('Windows Command Controller');
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Show / Hide', click: () => (win.isVisible() ? win.hide() : win.show()) },
     { type: 'separator' },

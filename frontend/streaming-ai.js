@@ -26,7 +26,8 @@ function initializeStreamingAI() {
             const requestBody = {
                 transcript: transcript || 'Analyze this screenshot',
                 role: 'data engineer',
-                save_to_context: true
+                save_to_context: true,
+                text_model: window.selectedModel || 'gpt-3.5-turbo'
             };
 
             if (capturedScreenshot) {
