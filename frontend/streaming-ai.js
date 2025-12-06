@@ -76,6 +76,22 @@ function initializeStreamingAI() {
 
                             if (data.done) {
                                 console.log('[STREAM] Complete');
+                                // Update API cost display with color gradient
+                                if (data.usage && data.usage.total_cost !== undefined) {
+                                    const apiCostEl = document.getElementById('api-cost');
+                                    if (apiCostEl) {
+                                        const cost = data.usage.total_cost;
+                                        apiCostEl.innerText = '$' + cost.toFixed(4);
+                                        // Color gradient: green < $0.10, orange $0.10-$0.50, red > $0.50
+                                        if (cost < 0.10) {
+                                            apiCostEl.style.color = 'rgba(120, 200, 180, 0.85)'; // soft teal
+                                        } else if (cost < 0.50) {
+                                            apiCostEl.style.color = 'rgba(200, 170, 120, 0.85)'; // muted amber
+                                        } else {
+                                            apiCostEl.style.color = 'rgba(200, 130, 130, 0.85)'; // soft rose
+                                        }
+                                    }
+                                }
                             }
                         } catch (jsonError) {
                             // Ignore malformed JSON
