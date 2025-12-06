@@ -31,11 +31,27 @@ session_usage = {
     "request_count": 0
 }
 
-# GPT pricing (per 1M tokens)
+# GPT pricing (per 1M tokens) - Updated December 2025
 PRICING = {
+    "gpt-3.5-turbo": {"input": 0.50, "output": 1.50},
+    "gpt-4o-mini": {"input": 0.60, "output": 2.40},
     "gpt-4o": {"input": 2.50, "output": 10.00},
-    "gpt-3.5-turbo": {"input": 0.50, "output": 1.50}
+    "gpt-5-nano": {"input": 0.30, "output": 1.20},
+    "gpt-5-mini": {"input": 1.50, "output": 6.00},
+    "gpt-5": {"input": 5.00, "output": 20.00}
 }
+
+# Available models for text-only responses (user can select)
+AVAILABLE_TEXT_MODELS = {
+    "gpt-3.5-turbo": {"name": "GPT-3.5 Turbo", "speed": "Fastest", "cost": "Cheapest", "accuracy": "Good", "desc": "Quick text answers"},
+    "gpt-4o-mini": {"name": "GPT-4o Mini", "speed": "Fast", "cost": "Cheap", "accuracy": "Better", "desc": "Balanced option"},
+    "gpt-4o": {"name": "GPT-4o", "speed": "Medium", "cost": "Moderate", "accuracy": "Great", "desc": "Complex questions"},
+    "gpt-5-nano": {"name": "GPT-5 Nano", "speed": "Fast", "cost": "Cheap", "accuracy": "Good", "desc": "Lightweight GPT-5"},
+    "gpt-5-mini": {"name": "GPT-5 Mini", "speed": "Medium", "cost": "Moderate", "accuracy": "Better", "desc": "Balanced GPT-5"},
+    "gpt-5": {"name": "GPT-5", "speed": "Slower", "cost": "Premium", "accuracy": "Best", "desc": "Maximum quality"}
+}
+
+DEFAULT_TEXT_MODEL = "gpt-3.5-turbo"
 
 def count_tokens(text: str) -> int:
     """Count tokens in text"""
@@ -43,21 +59,55 @@ def count_tokens(text: str) -> int:
         return len(encoding.encode(text))
     return len(text) // 4  # Rough estimate
 
-def calculate_cost(input_tokens: int, output_tokens: int, model: str = "gpt-3.5-turbo") -> float:
+def estimate_image_tokens(base64_data: str, model: str = "gpt-4o") -> int:
+    """Estimate tokens for an image based on base64 data size.
+    GPT-4o uses ~255 tokens per 512x512 tile.
+    We estimate image dimensions from base64 size and calculate tiles.
+    """
+    try:
+        # Remove data URL prefix if present
+        if "base64," in base64_data:
+            base64_data = base64_data.split("base64,")[1]
+        
+        # Estimate image size from base64 length
+        # Base64 is ~4/3 of original size, JPEG compression is ~10:1
+        byte_size = len(base64_data) * 3 // 4
+        estimated_pixels = byte_size * 10  # Rough decompression estimate
+        
+        # Estimate dimensions (assume roughly square)
+        import math
+        side = int(math.sqrt(estimated_pixels))
+        
+        # GPT-4o: 512x512 tiles, ~255 tokens per tile + 85 base tokens
+        tiles_x = max(1, (side + 511) // 512)
+        tiles_y = max(1, (side + 511) // 512)
+        total_tiles = tiles_x * tiles_y
+        
+        # Base 85 tokens + 255 per tile (GPT-4o vision formula)
+        image_tokens = 85 + (255 * total_tiles)
+        
+        print(f"[IMAGE TOKENS] Estimated {image_tokens} tokens for ~{side}x{side} image ({total_tiles} tiles)")
+        return image_tokens
+    except Exception as e:
+        print(f"[IMAGE TOKENS] Error estimating: {e}, using default 500")
+        return 500  # Safe default for a medium image
+
+def calculate_cost(input_tokens: int, output_tokens: int, model: str = "gpt-3.5-turbo", image_tokens: int = 0) -> float:
     """Calculate cost in dollars"""
     pricing = PRICING.get(model, PRICING["gpt-3.5-turbo"])
-    input_cost = (input_tokens / 1_000_000) * pricing["input"]
+    total_input = input_tokens + image_tokens
+    input_cost = (total_input / 1_000_000) * pricing["input"]
     output_cost = (output_tokens / 1_000_000) * pricing["output"]
-    return (input_cost + output_cost) * 1.15  # 15% buffer
+    return (input_cost + output_cost) * 1.10  # 10% buffer
 
-def update_usage(input_tokens: int, output_tokens: int, model: str = "gpt-3.5-turbo"):
+def update_usage(input_tokens: int, output_tokens: int, model: str = "gpt-3.5-turbo", image_tokens: int = 0):
     """Update session usage stats"""
     global session_usage
-    session_usage["input_tokens"] += input_tokens
+    session_usage["input_tokens"] += input_tokens + image_tokens
     session_usage["output_tokens"] += output_tokens
-    session_usage["total_cost"] += calculate_cost(input_tokens, output_tokens, model)
+    session_usage["total_cost"] += calculate_cost(input_tokens, output_tokens, model, image_tokens)
     session_usage["request_count"] += 1
-    print(f"[USAGE] Total: ${session_usage['total_cost']:.4f} ({session_usage['request_count']} requests)")
+    print(f"[USAGE] Total: ${session_usage['total_cost']:.4f} ({session_usage['request_count']} requests, {image_tokens} image tokens)")
 
 # Fix Unicode encoding for Windows console (prevents charmap errors with special characters)
 if sys.platform == 'win32':
@@ -211,9 +261,29 @@ class AIRequest(BaseModel):
     screenshot: Optional[str] = None
     job_description: Optional[str] = None
     save_to_context: Optional[bool] = True  # Set False for one-shot problems (LeetCode), True for scenarios needing follow-up
+    text_model: Optional[str] = None  # Selected model for text-only responses
 
     class Config:
         extra = "ignore"  # Ignore extra fields
+
+
+@app.get('/models')
+async def get_available_models():
+    """Return available text models with metadata for UI display"""
+    models = []
+    for model_id, info in AVAILABLE_TEXT_MODELS.items():
+        pricing = PRICING.get(model_id, {})
+        models.append({
+            "id": model_id,
+            "name": info["name"],
+            "speed": info["speed"],
+            "cost": info["cost"],
+            "accuracy": info["accuracy"],
+            "description": info["desc"],
+            "price_input": pricing.get("input", 0),
+            "price_output": pricing.get("output", 0)
+        })
+    return {"models": models, "default": DEFAULT_TEXT_MODEL}
 
 
 # Debug endpoint to test raw requests
@@ -439,7 +509,8 @@ async def save_session_data(data: Dict[str, Any]):
             'job_description': data.get('job_description', ''),
             'resume_text': data.get('resume_text', ''),
             'created_at': data.get('created_at', ''),
-            'updated_at': str(Path('').resolve())  # Will be updated on each save
+            'updated_at': str(Path('').resolve()),  # Will be updated on each save
+            'text_model': data.get('text_model', DEFAULT_TEXT_MODEL)
         }
         
         session_file.write_text(json.dumps(session_data, indent=2), encoding='utf-8')
@@ -590,7 +661,8 @@ async def load_session(session_name: str):
             "session_name": session_name,
             "resume_text": data.get('resume_text', ''),
             "job_description": data.get('job_description', ''),
-            "created_at": data.get('created_at', '')
+            "created_at": data.get('created_at', ''),
+            "text_model": data.get('text_model', DEFAULT_TEXT_MODEL)
         }
     except Exception as e:
         return {"status": "error", "error": str(e)}
@@ -813,8 +885,9 @@ async def stream_ai_response(req: AIRequest):
 
                 # Add current question
                 messages.append({"role": "user", "content": req.transcript})
-                model = "gpt-3.5-turbo"  # Fast model for text-only
-                print(f"[STREAM] Using model: {model} (text-only)")
+                # Use selected model or default
+                model = req.text_model if req.text_model and req.text_model in AVAILABLE_TEXT_MODELS else DEFAULT_TEXT_MODEL
+                print(f"[STREAM] Using model: {model} (text-only, user selected: {req.text_model})")
 
             # Stream the response
             completion = client.chat.completions.create(
@@ -865,7 +938,13 @@ async def stream_ai_response(req: AIRequest):
             input_text = "\n".join([m.get('content', '') if isinstance(m.get('content'), str) else str(m.get('content', '')) for m in messages])
             input_tokens = count_tokens(input_text)
             output_tokens = count_tokens(full_response)
-            update_usage(input_tokens, output_tokens, model)
+            
+            # Estimate image tokens if screenshot was used
+            image_tokens = 0
+            if req.screenshot:
+                image_tokens = estimate_image_tokens(req.screenshot, model)
+            
+            update_usage(input_tokens, output_tokens, model, image_tokens)
             
             # Send completion signal with usage info
             yield f"data: {json.dumps({'done': True, 'usage': session_usage})}\n\n"
@@ -1053,7 +1132,7 @@ async def generate_ai_response(req: AIRequest):
 if __name__ == "__main__":
     import uvicorn
     print("\n" + "="*60)
-    print("Starting JobAndit Backend")
+    print("Starting Windows Command Controller Backend")
     print("API running on: http://localhost:5050")
     print("="*60 + "\n")
     uvicorn.run(app, host="0.0.0.0", port=5050, log_level="info")
