@@ -96,3 +96,21 @@ index_old.html
 # Fix scripts (temporary)
 fix_index.py
 fix_index.ps1
+# Debug and test scripts (development only)
+backend/debug_backend_local.py
+backend/debug_openai_direct.py
+backend/check_http.py
+backend/check_main_app.py
+backend/check_minimal.py
+backend/check_openai.py
+backend/check_websockets.py
+backend/test_resume_reset.py
+backend/WinHostSvc.py
+
+# Spec files (build artifacts)
+backend/*.spec
+
+# Documentation (development)
+backend/readme.txt
+backend/QUICK_FIX.md
+backend/RESUME_FIX.md
