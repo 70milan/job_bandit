@@ -1,6 +1,6 @@
 {
   "name": "windows-command-controller",
-  "version": "1.0.29",
+  "version": "1.0.31",
   "description": "Windows Command Controller",
   "main": "main.js",
   "scripts": {
@@ -58,7 +58,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "deleteAppDataOnUninstall": false,
-      "artifactName": "Windows.Command.Controller-Setup-${version}.${ext}"
+      "artifactName": "Windows-Command-Controller-Setup-${version}.${ext}"
     },
     "extraMetadata": {
       "main": "main.js"
