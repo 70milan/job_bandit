@@ -10,8 +10,8 @@ let isMiniMode = false;
 let backendProcess = null;
 
 // ============ AUTO-UPDATER SETUP ============
-autoUpdater.autoDownload = true;
-autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
 
 function showUpdateUI(type, version, percent = 0) {
   if (!win) return;
@@ -83,7 +83,25 @@ autoUpdater.on('checking-for-update', () => {
 autoUpdater.on('update-available', (info) => {
   console.log('Update available:', info.version);
   updateVersion = info.version;
-  showUpdateUI('downloading', info.version, 0);
+
+  // Prompt user whether they want to update
+  dialog.showMessageBox(win, {
+    type: 'info',
+    title: 'Update Available',
+    message: `A new version (${info.version}) is available!`,
+    detail: 'Would you like to download and install it now?',
+    buttons: ['Yes', 'No'],
+    defaultId: 0,
+    cancelId: 1
+  }).then(result => {
+    if (result.response === 0) {
+      // User clicked Yes, start download
+      showUpdateUI('downloading', info.version, 0);
+      autoUpdater.downloadUpdate();
+    } else {
+      console.log('User declined update');
+    }
+  });
 });
 
 autoUpdater.on('update-not-available', () => {
@@ -98,11 +116,28 @@ autoUpdater.on('download-progress', (progress) => {
 
 autoUpdater.on('update-downloaded', (info) => {
   console.log('Update downloaded:', info.version);
-  showUpdateUI('installing', info.version);
-  // Auto-install after short delay
-  setTimeout(() => {
-    autoUpdater.quitAndInstall(true, true);
-  }, 1500);
+
+  // Prompt user whether they want to install now
+  dialog.showMessageBox(win, {
+    type: 'info',
+    title: 'Update Ready',
+    message: `Update to version ${info.version} has been downloaded!`,
+    detail: 'Would you like to restart and install it now?',
+    buttons: ['Restart Now', 'Later'],
+    defaultId: 0,
+    cancelId: 1
+  }).then(result => {
+    if (result.response === 0) {
+      // User clicked Restart Now
+      showUpdateUI('installing', info.version);
+      setTimeout(() => {
+        autoUpdater.quitAndInstall(true, true);
+      }, 1500);
+    } else {
+      console.log('User chose to install later');
+      hideUpdateUI();
+    }
+  });
 });
 
 autoUpdater.on('error', (err) => {
