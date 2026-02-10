@@ -157,7 +157,7 @@ function createWindow() {
   const bounds = centerTop();
   win = new BrowserWindow({
     ...bounds,
-    show: false,
+    show: true,
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
@@ -346,7 +346,7 @@ app.whenReady().then(() => {
   });
 
   /* ---- Tray ---- */
-  const iconPath = path.join(__dirname, 'icon.png');
+  const iconPath = path.join(__dirname, 'icon.ico');
   tray = new Tray(nativeImage.createFromPath(iconPath));
   tray.setToolTip('Windows Command Controller');
   const contextMenu = Menu.buildFromTemplate([
