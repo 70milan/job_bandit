@@ -58,7 +58,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "deleteAppDataOnUninstall": false,
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "Windows.Command.Controller-Setup-${version}.${ext}"
     },
     "extraMetadata": {
       "main": "main.js"
