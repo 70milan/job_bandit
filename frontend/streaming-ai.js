@@ -82,7 +82,12 @@ function initializeStreamingAI() {
                                     const apiCostEl = document.getElementById('api-cost');
                                     if (apiCostEl) {
                                         const cost = data.usage.total_cost;
-                                        apiCostEl.innerText = '$' + cost.toFixed(4);
+                                        // Show cents when under $1, dollars when $1+
+                                        if (cost < 1.00) {
+                                            apiCostEl.innerText = (cost * 100).toFixed(2) + '¢';
+                                        } else {
+                                            apiCostEl.innerText = '$' + cost.toFixed(2);
+                                        }
                                         // Color gradient: green < $0.10, orange $0.10-$0.50, red > $0.50
                                         if (cost < 0.10) {
                                             apiCostEl.style.color = 'rgba(120, 200, 180, 0.85)'; // soft teal

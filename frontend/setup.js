@@ -141,11 +141,10 @@ function checkAllInputs() {
     const hasApiKey = apiKeyInput && apiKeyInput.value.trim().length > 0;
     const hasJD = jdInput && jdInput.value.trim().length > 0;
 
+    // Button is always clickable but style reflects readiness
     if (hasSessionName && hasFile && hasApiKey && hasJD && startBtn) {
-        startBtn.disabled = false;
         startBtn.style.opacity = '1';
     } else if (startBtn) {
-        startBtn.disabled = true;
         startBtn.style.opacity = '0.5';
     }
 }
@@ -169,16 +168,31 @@ function initSession() {
         fileInput.addEventListener('change', () => {
             console.log('[DEBUG] File input changed!');
             console.log('[DEBUG] Files:', fileInput.files);
+            const detachBtn = document.getElementById('resume-detach-btn');
             if (fileInput.files && fileInput.files.length > 0) {
                 console.log('[DEBUG] Selected file:', fileInput.files[0].name);
                 resumeFilename.textContent = fileInput.files[0].name;
                 resumeFilename.style.color = 'rgba(100, 255, 150, 0.9)';
+                if (detachBtn) detachBtn.style.display = 'inline-block';
             } else {
                 resumeFilename.textContent = 'No file chosen';
                 resumeFilename.style.color = 'rgba(255, 255, 255, 0.4)';
+                if (detachBtn) detachBtn.style.display = 'none';
             }
             checkAllInputs();
         });
+
+        // Resume detach button
+        const detachBtn = document.getElementById('resume-detach-btn');
+        if (detachBtn) {
+            detachBtn.addEventListener('click', () => {
+                fileInput.value = '';
+                resumeFilename.textContent = 'No file chosen';
+                resumeFilename.style.color = 'rgba(255, 255, 255, 0.4)';
+                detachBtn.style.display = 'none';
+                checkAllInputs();
+            });
+        }
     }
 
     if (sessionNameInput) {
@@ -193,7 +207,20 @@ function initSession() {
         });
     }
     if (apiKeyInput) {
-        apiKeyInput.addEventListener('input', checkAllInputs);
+        // Load saved API key from localStorage
+        const savedApiKey = localStorage.getItem('openai_api_key');
+        if (savedApiKey) {
+            apiKeyInput.value = savedApiKey;
+            console.log('[DEBUG] API key loaded from localStorage');
+        }
+        apiKeyInput.addEventListener('input', () => {
+            // Save API key as user types
+            const val = apiKeyInput.value.trim();
+            if (val) {
+                localStorage.setItem('openai_api_key', val);
+            }
+            checkAllInputs();
+        });
     }
     if (jdInput) {
         jdInput.addEventListener('input', checkAllInputs);
@@ -275,11 +302,11 @@ function initSession() {
                                 <div style="color: rgba(255,255,255,0.4); font-size: 10px;">${session.created_at || 'No date'}</div>
                                 <div style="color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${session.job_description_preview || ''}</div>
                             </div>
-                            <button onclick="event.stopPropagation(); window.deletePastSession('${session.name.replace(/'/g, "\\'")}')" 
-                                    style="background: none; border: none; cursor: pointer; padding: 6px; margin-left: 8px; transition: all 0.2s; font-size: 16px; color: rgba(255,255,255,0.3);"
-                                    onmouseover="this.style.color='rgba(255,100,100,0.8)'" 
-                                    onmouseout="this.style.color='rgba(255,255,255,0.3)'"
-                                    title="Delete session">🗑️</button>
+                            <button onclick="event.stopPropagation(); window.deletePastSession('${session.name.replace(/'/g, "\\\\'")}')" 
+                                    style="background: none; border: 1px solid rgba(255,255,255,0.08); border-radius: 3px; cursor: pointer; padding: 4px 8px; margin-left: 8px; transition: all 0.2s; font-size: 9px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;"
+                                    onmouseover="this.style.color='#ff5555'; this.style.borderColor='rgba(255,68,68,0.3)'; this.style.background='rgba(255,68,68,0.08)';"
+                                    onmouseout="this.style.color='rgba(255,255,255,0.3)'; this.style.borderColor='rgba(255,255,255,0.08)'; this.style.background='none';"
+                                    title="Delete session">TRASH</button>
                         </div>
                     `).join('');
                 } else {
@@ -546,11 +573,23 @@ async function handleCreateSession() {
     // Validate session name
     const sessionName = sessionNameInput ? sessionNameInput.value.trim() : '';
     console.log('[DEBUG] Session name:', sessionName);
+
+    // Helper to show validation toast
+    function showValidationError(msg) {
+        const errorPopup = document.getElementById('session-error-popup');
+        if (errorPopup) {
+            errorPopup.textContent = msg;
+            errorPopup.style.display = 'block';
+            errorPopup.style.opacity = '1';
+            setTimeout(() => {
+                errorPopup.style.opacity = '0';
+                setTimeout(() => errorPopup.style.display = 'none', 200);
+            }, 3000);
+        }
+    }
+
     if (!sessionName) {
-        status.innerText = "Please enter a session name";
-        status.style.color = "#ff6b6b";
-        startBtn.disabled = true;
-        startBtn.style.opacity = '0.5';
+        showValidationError('Please enter a session name');
         return;
     }
 
@@ -558,27 +597,18 @@ async function handleCreateSession() {
     const sanitizedSessionName = sessionName.replace(/[<>:"/\\|?*]/g, '_');
 
     if (!fileInput.files || fileInput.files.length === 0) {
-        status.innerText = "Please upload a resume (.docx)";
-        status.style.color = "#ff4444";
-        startBtn.disabled = true;
-        startBtn.style.opacity = '0.5';
+        showValidationError('You need to attach a resume to proceed');
         return;
     }
 
     const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
     if (!apiKey) {
-        status.innerText = "Please enter your OpenAI API key";
-        status.style.color = "#ff4444";
-        startBtn.disabled = true;
-        startBtn.style.opacity = '0.5';
+        showValidationError('Please enter your OpenAI API key');
         return;
     }
 
     if (!jdInput.value.trim()) {
-        status.innerText = "Please enter a Job Description";
-        status.style.color = "#ff4444";
-        startBtn.disabled = true;
-        startBtn.style.opacity = '0.5';
+        showValidationError('Please enter a Job Description');
         return;
     }
 
@@ -609,8 +639,6 @@ async function handleCreateSession() {
             // User entered something but it's wrong - show error and stop
             status.innerText = "Please enter a valid license key";
             status.style.color = "#ff4444";
-            startBtn.disabled = false;
-            startBtn.style.opacity = '1';
             return;
         }
 
@@ -738,9 +766,9 @@ function startSessionTimer() {
     }
 
     const timerText = document.getElementById('session-timer-text');
-    const timerDot = document.getElementById('session-timer-dot');
     const startBtn = document.getElementById('btn-session-start');
     const stopBtn = document.getElementById('btn-session-stop');
+    const endBtn = document.getElementById('btn-session-end');
     const statusText = document.getElementById('status-text');
 
     if (timerInterval) {
@@ -754,7 +782,8 @@ function startSessionTimer() {
 
     // Update button states
     startBtn.classList.add('active');
-    stopBtn.classList.remove('stopped');
+    stopBtn.classList.remove('paused');
+    if (endBtn) endBtn.classList.remove('ended');
     statusText.innerText = isLicensed ? 'Session Running' : 'Demo Mode (5 min)';
 
     timerInterval = setInterval(() => {
@@ -764,7 +793,14 @@ function startSessionTimer() {
             clearInterval(timerInterval);
             timerInterval = null;
             timerText.innerText = `0:00:00`;
-            timerDot.className = 'session-indicator';
+            // Reset timer colors
+            const timerBox = document.getElementById('session-timer');
+            if (timerBox) {
+                timerBox.style.color = 'rgba(255,255,255,0.8)';
+                timerBox.style.borderColor = 'rgba(255,255,255,0.12)';
+                timerBox.style.background = 'rgba(255,255,255,0.03)';
+                timerBox.style.boxShadow = 'none';
+            }
             if (isLicensed) {
                 customAlert('Session time expired! (2 hours)');
                 statusText.innerText = 'Session Expired';
@@ -773,7 +809,7 @@ function startSessionTimer() {
                 showLicensePrompt();
                 statusText.innerText = 'Demo Expired';
             }
-            stopBtn.classList.add('stopped');
+            stopBtn.classList.add('paused');
             startBtn.classList.remove('active');
             return;
         }
@@ -784,13 +820,37 @@ function startSessionTimer() {
 
         const timeStr = `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         timerText.innerText = timeStr;
-        timerDot.className = 'session-indicator active';
+
+        // Timer color: green(normal) → yellow(last 30 min) → red(last 10 min)
+        const timerBox = document.getElementById('session-timer');
+        const thirtyMin = 30 * 60 * 1000;
+        const tenMin = 10 * 60 * 1000;
+        if (timerBox) {
+            if (remaining <= tenMin) {
+                // Critical: last 10 minutes — red glow
+                timerBox.style.color = '#ff4444';
+                timerBox.style.borderColor = 'rgba(255, 68, 68, 0.5)';
+                timerBox.style.background = 'rgba(255, 50, 50, 0.1)';
+                timerBox.style.boxShadow = '0 0 12px rgba(255, 50, 50, 0.25)';
+            } else if (remaining <= thirtyMin) {
+                // Warning: last 30 minutes — yellow
+                timerBox.style.color = '#f0c040';
+                timerBox.style.borderColor = 'rgba(240, 192, 64, 0.4)';
+                timerBox.style.background = 'rgba(240, 192, 64, 0.06)';
+                timerBox.style.boxShadow = '0 0 8px rgba(240, 192, 64, 0.15)';
+            } else {
+                // Normal: green / cyan
+                timerBox.style.color = '#00e6c8';
+                timerBox.style.borderColor = 'rgba(0, 230, 200, 0.3)';
+                timerBox.style.background = 'rgba(0, 230, 200, 0.05)';
+                timerBox.style.boxShadow = '0 0 6px rgba(0, 230, 200, 0.1)';
+            }
+        }
 
     }, 1000);
 }
 
 function stopSessionTimer() {
-    const timerDot = document.getElementById('session-timer-dot');
     const startBtn = document.getElementById('btn-session-start');
     const stopBtn = document.getElementById('btn-session-stop');
     const statusText = document.getElementById('status-text');
@@ -804,8 +864,7 @@ function stopSessionTimer() {
 
     // Update button states
     startBtn.classList.remove('active');
-    stopBtn.classList.add('stopped');
-    timerDot.className = 'session-indicator paused';
+    stopBtn.classList.add('paused');
     statusText.innerText = 'Session Paused';
 }
 
@@ -835,7 +894,12 @@ async function endSession() {
             const usageRes = await fetch('http://127.0.0.1:5050/usage');
             if (usageRes.ok) {
                 const usage = await usageRes.json();
-                apiCost = '$' + (usage.total_cost || 0).toFixed(4);
+                const costVal = usage.total_cost || 0;
+                if (costVal < 1.00) {
+                    apiCost = (costVal * 100).toFixed(2) + '¢';
+                } else {
+                    apiCost = '$' + costVal.toFixed(2);
+                }
             }
         } catch (e) { }
 
@@ -900,15 +964,24 @@ async function endSession() {
 
         // Reset timer display
         const timerText = document.getElementById('session-timer-text');
-        const timerDot = document.getElementById('session-timer-dot');
         if (timerText) timerText.innerText = '2:00:00';
-        if (timerDot) timerDot.className = 'session-indicator';
+
+        // Reset timer colors
+        const timerBox = document.getElementById('session-timer');
+        if (timerBox) {
+            timerBox.style.color = 'rgba(255,255,255,0.8)';
+            timerBox.style.borderColor = 'rgba(255,255,255,0.12)';
+            timerBox.style.background = 'rgba(255,255,255,0.03)';
+            timerBox.style.boxShadow = 'none';
+        }
 
         // Reset button states
         const startBtn = document.getElementById('btn-session-start');
         const stopBtn = document.getElementById('btn-session-stop');
+        const endBtn = document.getElementById('btn-session-end');
         if (startBtn) startBtn.classList.remove('active');
-        if (stopBtn) stopBtn.classList.remove('stopped');
+        if (stopBtn) stopBtn.classList.remove('paused');
+        if (endBtn) endBtn.classList.add('ended');
 
         // Reset status text
         const statusText = document.getElementById('status-text');
@@ -963,65 +1036,76 @@ async function endSession() {
     const modelDropdown = document.getElementById('model-dropdown');
 
     if (modelBtn && modelDropdown) {
-        // Fetch models from backend
-        fetch('http://127.0.0.1:5050/models')
-            .then(res => res.json())
-            .then(data => {
-                if (data.models) {
-                    modelDropdown.innerHTML = data.models.map(m => {
-                        const isGPT5 = m.id.startsWith('gpt-5');
-                        const comingSoonTag = isGPT5 ? ' <span style="color: rgba(255, 150, 100, 0.9); font-weight: 600; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 6px;">(Coming Soon)</span>' : '';
-                        const opacity = isGPT5 ? 'opacity: 0.5;' : '';
-                        const cursor = isGPT5 ? 'cursor: not-allowed;' : 'cursor: pointer;';
+        // Fetch models from backend with retry (backend may still be starting in built exe)
+        function fetchModelsWithRetry(attempts, delay) {
+            fetch('http://127.0.0.1:5050/models')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.models) {
+                        modelDropdown.innerHTML = data.models.map(m => {
+                            const isGPT5 = m.id.startsWith('gpt-5');
+                            const comingSoonTag = isGPT5 ? ' <span style="color: rgba(255, 150, 100, 0.9); font-weight: 600; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 6px;">(Coming Soon)</span>' : '';
+                            const opacity = isGPT5 ? 'opacity: 0.5;' : '';
+                            const cursor = isGPT5 ? 'cursor: not-allowed;' : 'cursor: pointer;';
 
-                        return `
-                        <div class="model-option ${isGPT5 ? 'disabled' : ''}" data-model="${m.id}" data-disabled="${isGPT5}" style="padding: 8px 12px; ${cursor} border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; ${opacity}">
-                            <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 500;">${m.name}${comingSoonTag}</div>
-                            <div style="color: rgba(255,255,255,0.4); font-size: 9px; margin-top: 2px;">
-                                ${m.speed} · ${m.cost} · ${m.accuracy} — ${m.description}
+                            return `
+                            <div class="model-option ${isGPT5 ? 'disabled' : ''}" data-model="${m.id}" data-disabled="${isGPT5}" style="padding: 8px 12px; ${cursor} border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; ${opacity}">
+                                <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 500;">${m.name}${comingSoonTag}</div>
+                                <div style="color: rgba(255,255,255,0.4); font-size: 9px; margin-top: 2px;">
+                                    ${m.speed} · ${m.cost} · ${m.accuracy} — ${m.description}
+                                </div>
                             </div>
-                        </div>
-                    `}).join('');
+                        `}).join('');
 
-                    // Add hover effect and click handling
-                    modelDropdown.querySelectorAll('.model-option').forEach(opt => {
-                        const isDisabled = opt.dataset.disabled === 'true';
+                        // Add hover effect and click handling
+                        modelDropdown.querySelectorAll('.model-option').forEach(opt => {
+                            const isDisabled = opt.dataset.disabled === 'true';
 
-                        if (!isDisabled) {
-                            opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.08)');
-                            opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
-                            opt.addEventListener('click', () => {
-                                const modelId = opt.dataset.model;
-                                window.selectedModel = modelId;
-                                modelBtn.textContent = opt.querySelector('div').textContent.replace('(Coming Soon)', '').trim();
-                                modelDropdown.style.display = 'none';
-                                console.log('[MODEL] Selected:', modelId);
-                            });
-                        } else {
-                            // Show error popup for GPT-5 models
-                            opt.addEventListener('click', () => {
-                                const errorPopup = document.getElementById('session-error-popup');
-                                if (errorPopup) {
-                                    errorPopup.textContent = 'GPT-5 models coming soon!';
-                                    errorPopup.style.display = 'block';
-                                    errorPopup.style.opacity = '1';
-                                    setTimeout(() => {
-                                        errorPopup.style.opacity = '0';
-                                        setTimeout(() => errorPopup.style.display = 'none', 200);
-                                    }, 2000);
-                                }
-                                modelDropdown.style.display = 'none';
-                            });
+                            if (!isDisabled) {
+                                opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.08)');
+                                opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
+                                opt.addEventListener('click', () => {
+                                    const modelId = opt.dataset.model;
+                                    window.selectedModel = modelId;
+                                    modelBtn.textContent = opt.querySelector('div').textContent.replace('(Coming Soon)', '').trim();
+                                    modelDropdown.style.display = 'none';
+                                    console.log('[MODEL] Selected:', modelId);
+                                });
+                            } else {
+                                // Show error popup for GPT-5 models
+                                opt.addEventListener('click', () => {
+                                    const errorPopup = document.getElementById('session-error-popup');
+                                    if (errorPopup) {
+                                        errorPopup.textContent = 'GPT-5 models coming soon!';
+                                        errorPopup.style.display = 'block';
+                                        errorPopup.style.opacity = '1';
+                                        setTimeout(() => {
+                                            errorPopup.style.opacity = '0';
+                                            setTimeout(() => errorPopup.style.display = 'none', 200);
+                                        }, 2000);
+                                    }
+                                    modelDropdown.style.display = 'none';
+                                });
+                            }
+                        });
+
+                        // Set default
+                        if (data.default) {
+                            window.selectedModel = data.default;
                         }
-                    });
-
-                    // Set default
-                    if (data.default) {
-                        window.selectedModel = data.default;
+                        console.log('[MODEL] Models loaded successfully');
                     }
-                }
-            })
-            .catch(e => console.error('Failed to load models:', e));
+                })
+                .catch(e => {
+                    console.warn(`[MODEL] Failed to load models (${attempts} retries left):`, e.message || e);
+                    if (attempts > 1) {
+                        setTimeout(() => fetchModelsWithRetry(attempts - 1, delay), delay);
+                    } else {
+                        console.error('[MODEL] All retries exhausted - models not loaded');
+                    }
+                });
+        }
+        fetchModelsWithRetry(10, 2000);
 
         // Toggle dropdown
         modelBtn.addEventListener('click', (e) => {

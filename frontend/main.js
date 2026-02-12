@@ -13,47 +13,20 @@ let backendProcess = null;
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
 
-function showUpdateUI(type, version, percent = 0) {
+function showUpdateOverlay(content) {
   if (!win) return;
-
-  const html = `
+  win.webContents.executeJavaScript(`
     (function() {
       let el = document.getElementById('update-overlay');
       if (!el) {
         el = document.createElement('div');
         el.id = 'update-overlay';
-        el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;';
+        el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(10,10,10,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Segoe UI,Arial,sans-serif;';
         document.body.appendChild(el);
       }
-      
-      if ('${type}' === 'downloading') {
-        el.innerHTML = \`
-          <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border:1px solid rgba(0,212,255,0.3);border-radius:12px;padding:40px 50px;text-align:center;box-shadow:0 0 60px rgba(0,212,255,0.2);">
-            <div style="font-size:28px;margin-bottom:8px;">⬇️</div>
-            <div style="color:#00d4ff;font-size:18px;font-weight:600;margin-bottom:6px;">Downloading Update</div>
-            <div style="color:#888;font-size:13px;margin-bottom:20px;">v${version}</div>
-            <div style="width:280px;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
-              <div id="update-progress-bar" style="height:100%;background:linear-gradient(90deg,#00d4ff,#00ff88);width:${percent}%;transition:width 0.3s ease;"></div>
-            </div>
-            <div id="update-progress-text" style="color:#00d4ff;font-size:14px;margin-top:12px;font-weight:500;">${percent}%</div>
-          </div>
-        \`;
-      } else if ('${type}' === 'installing') {
-        el.innerHTML = \`
-          <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border:1px solid rgba(0,212,255,0.3);border-radius:12px;padding:40px 50px;text-align:center;box-shadow:0 0 60px rgba(0,212,255,0.2);">
-            <div style="font-size:28px;margin-bottom:8px;">✨</div>
-            <div style="color:#00d4ff;font-size:18px;font-weight:600;margin-bottom:6px;">Installing Update</div>
-            <div style="color:#888;font-size:13px;">Restarting app...</div>
-            <div style="margin-top:20px;">
-              <div style="width:24px;height:24px;border:3px solid rgba(0,212,255,0.3);border-top-color:#00d4ff;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto;"></div>
-            </div>
-          </div>
-          <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-        \`;
-      }
+      el.innerHTML = ${content};
     })()
-  `;
-  win.webContents.executeJavaScript(html);
+  `);
 }
 
 function updateProgressUI(percent) {
@@ -84,24 +57,55 @@ autoUpdater.on('update-available', (info) => {
   console.log('Update available:', info.version);
   updateVersion = info.version;
 
-  // Prompt user whether they want to update
-  dialog.showMessageBox(win, {
-    type: 'info',
-    title: 'Update Available',
-    message: `A new version (${info.version}) is available!`,
-    detail: 'Would you like to download and install it now?',
-    buttons: ['Yes', 'No'],
-    defaultId: 0,
-    cancelId: 1
-  }).then(result => {
-    if (result.response === 0) {
-      // User clicked Yes, start download
-      showUpdateUI('downloading', info.version, 0);
-      autoUpdater.downloadUpdate();
-    } else {
-      console.log('User declined update');
-    }
-  });
+  // Custom in-app prompt matching app design
+  const content = `\`
+    <div style="background:rgba(30,30,30,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:30px 36px;text-align:center;max-width:340px;width:90%;">
+      <div style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;">Update Available</div>
+      <div style="color:rgba(255,255,255,0.8);font-size:16px;font-weight:500;margin-bottom:6px;">Version ${info.version}</div>
+      <div style="color:rgba(255,255,255,0.35);font-size:13px;margin-bottom:24px;">A new version is ready to download.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button id="update-yes-btn" style="width:100%;padding:10px 0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:rgba(255,255,255,0.6);font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;font-weight:500;transition:all 0.2s;"
+          onmouseover="this.style.color='rgba(255,255,255,0.9)';this.style.borderColor='rgba(255,255,255,0.3)';"
+          onmouseout="this.style.color='rgba(255,255,255,0.6)';this.style.borderColor='rgba(255,255,255,0.15)';">Download</button>
+        <button id="update-no-btn" style="width:100%;padding:10px 0;background:none;border:1px solid rgba(255,255,255,0.08);border-radius:4px;color:rgba(255,255,255,0.35);font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;font-weight:500;transition:all 0.2s;"
+          onmouseover="this.style.color='rgba(255,255,255,0.6)';this.style.borderColor='rgba(255,255,255,0.15)';"
+          onmouseout="this.style.color='rgba(255,255,255,0.35)';this.style.borderColor='rgba(255,255,255,0.08)';">Skip</button>
+      </div>
+    </div>
+  \``;
+
+  showUpdateOverlay(content);
+
+  // Wire up buttons via IPC
+  win.webContents.executeJavaScript(`
+    document.getElementById('update-yes-btn').addEventListener('click', () => {
+      require('electron').ipcRenderer.send('update-accept');
+    });
+    document.getElementById('update-no-btn').addEventListener('click', () => {
+      require('electron').ipcRenderer.send('update-decline');
+    });
+  `);
+});
+
+ipcMain.on('update-accept', () => {
+  // Show downloading UI
+  const content = `\`
+    <div style="background:rgba(30,30,30,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:30px 36px;text-align:center;max-width:340px;width:90%;">
+      <div style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;">Downloading Update</div>
+      <div style="color:rgba(255,255,255,0.4);font-size:13px;margin-bottom:18px;">v\${updateVersion}</div>
+      <div style="width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+        <div id="update-progress-bar" style="height:100%;background:rgba(255,255,255,0.4);width:0%;transition:width 0.3s ease;border-radius:2px;"></div>
+      </div>
+      <div id="update-progress-text" style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:12px;letter-spacing:0.5px;">0%</div>
+    </div>
+  \``;
+  showUpdateOverlay(content);
+  autoUpdater.downloadUpdate();
+});
+
+ipcMain.on('update-decline', () => {
+  console.log('User declined update');
+  hideUpdateUI();
 });
 
 autoUpdater.on('update-not-available', () => {
@@ -117,33 +121,48 @@ autoUpdater.on('download-progress', (progress) => {
 autoUpdater.on('update-downloaded', (info) => {
   console.log('Update downloaded:', info.version);
 
-  // Prompt user whether they want to install now
-  dialog.showMessageBox(win, {
-    type: 'info',
-    title: 'Update Ready',
-    message: `Update to version ${info.version} has been downloaded!`,
-    detail: 'Would you like to restart and install it now?',
-    buttons: ['Restart Now', 'Later'],
-    defaultId: 0,
-    cancelId: 1
-  }).then(result => {
-    if (result.response === 0) {
-      // User clicked Restart Now
-      showUpdateUI('installing', info.version);
-      setTimeout(() => {
-        autoUpdater.quitAndInstall(true, true);
-      }, 1500);
-    } else {
-      console.log('User chose to install later');
-      hideUpdateUI();
-    }
-  });
+  // Show restart prompt in-app
+  const content = `\`
+    <div style="background:rgba(30,30,30,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:30px 36px;text-align:center;max-width:340px;width:90%;">
+      <div style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;">Update Ready</div>
+      <div style="color:rgba(255,255,255,0.8);font-size:16px;font-weight:500;margin-bottom:6px;">Version \${info.version}</div>
+      <div style="color:rgba(255,255,255,0.35);font-size:13px;margin-bottom:24px;">Restart to apply the update.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button id="update-restart-btn" style="width:100%;padding:10px 0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:rgba(255,255,255,0.6);font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;font-weight:500;transition:all 0.2s;"
+          onmouseover="this.style.color='rgba(255,255,255,0.9)';this.style.borderColor='rgba(255,255,255,0.3)';"
+          onmouseout="this.style.color='rgba(255,255,255,0.6)';this.style.borderColor='rgba(255,255,255,0.15)';">Restart Now</button>
+        <button id="update-later-btn" style="width:100%;padding:10px 0;background:none;border:1px solid rgba(255,255,255,0.08);border-radius:4px;color:rgba(255,255,255,0.35);font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;font-weight:500;transition:all 0.2s;"
+          onmouseover="this.style.color='rgba(255,255,255,0.6)';this.style.borderColor='rgba(255,255,255,0.15)';"
+          onmouseout="this.style.color='rgba(255,255,255,0.35)';this.style.borderColor='rgba(255,255,255,0.08)';">Later</button>
+      </div>
+    </div>
+  \``;
+
+  showUpdateOverlay(content);
+
+  // Wire up buttons via IPC
+  win.webContents.executeJavaScript(`
+    document.getElementById('update-restart-btn').addEventListener('click', () => {
+      require('electron').ipcRenderer.send('update-restart');
+    });
+    document.getElementById('update-later-btn').addEventListener('click', () => {
+      require('electron').ipcRenderer.send('update-later');
+    });
+  `);
+});
+
+ipcMain.on('update-restart', () => {
+  autoUpdater.quitAndInstall(true, true);
+});
+
+ipcMain.on('update-later', () => {
+  console.log('User chose to install later');
+  hideUpdateUI();
 });
 
 autoUpdater.on('error', (err) => {
   console.error('Auto-updater error:', err);
-  hideProgress();
-  dialog.showErrorBox('Update Error', `Auto-update failed: ${err.message}`);
+  hideUpdateUI();
 });
 // ============ END AUTO-UPDATER ============
 
