@@ -943,7 +943,7 @@ async function endSession() {
                 <button id="model-selector-btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; color: rgba(120, 200, 180, 0.85); padding: 2px 8px; font-size: 10px; cursor: pointer; font-weight: 500;">
                     GPT-3.5
                 </button>
-                <div id="model-dropdown" style="display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 5px; background: rgba(30,30,30,0.98); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; min-width: 220px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                <div id="model-dropdown" style="display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 5px; background: rgba(30,30,30,0.98); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; min-width: 220px; z-index: 10003; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
                 </div>
             `;
             rightSide.insertBefore(modelDiv, rightSide.firstChild);
@@ -968,26 +968,51 @@ async function endSession() {
             .then(res => res.json())
             .then(data => {
                 if (data.models) {
-                    modelDropdown.innerHTML = data.models.map(m => `
-                        <div class="model-option" data-model="${m.id}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
-                            <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 500;">${m.name}</div>
+                    modelDropdown.innerHTML = data.models.map(m => {
+                        const isGPT5 = m.id.startsWith('gpt-5');
+                        const comingSoonTag = isGPT5 ? ' <span style="color: rgba(255, 150, 100, 0.9); font-weight: 600; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 6px;">(Coming Soon)</span>' : '';
+                        const opacity = isGPT5 ? 'opacity: 0.5;' : '';
+                        const cursor = isGPT5 ? 'cursor: not-allowed;' : 'cursor: pointer;';
+
+                        return `
+                        <div class="model-option ${isGPT5 ? 'disabled' : ''}" data-model="${m.id}" data-disabled="${isGPT5}" style="padding: 8px 12px; ${cursor} border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; ${opacity}">
+                            <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 500;">${m.name}${comingSoonTag}</div>
                             <div style="color: rgba(255,255,255,0.4); font-size: 9px; margin-top: 2px;">
                                 ${m.speed} · ${m.cost} · ${m.accuracy} — ${m.description}
                             </div>
                         </div>
-                    `).join('');
+                    `}).join('');
 
-                    // Add hover effect
+                    // Add hover effect and click handling
                     modelDropdown.querySelectorAll('.model-option').forEach(opt => {
-                        opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.08)');
-                        opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
-                        opt.addEventListener('click', () => {
-                            const modelId = opt.dataset.model;
-                            window.selectedModel = modelId;
-                            modelBtn.textContent = opt.querySelector('div').textContent;
-                            modelDropdown.style.display = 'none';
-                            console.log('[MODEL] Selected:', modelId);
-                        });
+                        const isDisabled = opt.dataset.disabled === 'true';
+
+                        if (!isDisabled) {
+                            opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.08)');
+                            opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
+                            opt.addEventListener('click', () => {
+                                const modelId = opt.dataset.model;
+                                window.selectedModel = modelId;
+                                modelBtn.textContent = opt.querySelector('div').textContent.replace('(Coming Soon)', '').trim();
+                                modelDropdown.style.display = 'none';
+                                console.log('[MODEL] Selected:', modelId);
+                            });
+                        } else {
+                            // Show error popup for GPT-5 models
+                            opt.addEventListener('click', () => {
+                                const errorPopup = document.getElementById('session-error-popup');
+                                if (errorPopup) {
+                                    errorPopup.textContent = 'GPT-5 models coming soon!';
+                                    errorPopup.style.display = 'block';
+                                    errorPopup.style.opacity = '1';
+                                    setTimeout(() => {
+                                        errorPopup.style.opacity = '0';
+                                        setTimeout(() => errorPopup.style.display = 'none', 200);
+                                    }, 2000);
+                                }
+                                modelDropdown.style.display = 'none';
+                            });
+                        }
                     });
 
                     // Set default
