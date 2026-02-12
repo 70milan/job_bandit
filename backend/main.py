@@ -116,12 +116,19 @@ if sys.platform == 'win32':
 
 app = FastAPI()
 
-# Determine base directory (works with PyInstaller)
+# Determine base directory for data storage (persists across updates)
 if getattr(sys, 'frozen', False):
-    # Running as compiled executable
-    BASE_DIR = Path(sys.executable).parent
+    # Running as compiled executable - store data in AppData to survive updates
+    # e.g., C:\Users\<user>\AppData\Roaming\JobAndit\backend
+    app_data = os.getenv('APPDATA')
+    if app_data:
+        BASE_DIR = Path(app_data) / "JobAndit" / "backend"
+        BASE_DIR.mkdir(parents=True, exist_ok=True)
+    else:
+        # Fallback if APPDATA not found (rare)
+        BASE_DIR = Path(sys.executable).parent
 else:
-    # Running as script
+    # Running as script - store locally
     BASE_DIR = Path(__file__).parent
 
 # Allow the Electron frontend and local testing to call the API

@@ -420,34 +420,43 @@ app.whenReady().then(() => {
   if (app.dock) app.dock.hide();
 });
 
-app.on('will-quit', () => {
-  globalShortcut.unregisterAll();
-  if (backendProcess) {
-    // Force kill the backend process and its children
-    try {
-      process.kill(backendProcess.pid, 'SIGTERM');
-    } catch (e) {
-      console.log('Backend already terminated');
-    }
-  }
-});
-
-// Also handle before-quit for extra safety
-app.on('before-quit', () => {
+// Robust backend cleanup function
+function cleanupBackend() {
   if (backendProcess && !backendProcess.killed) {
     try {
-      // On Windows, use taskkill to ensure process tree is killed
+      console.log('Stopping backend process...');
       if (process.platform === 'win32') {
-        require('child_process').execSync(`taskkill /pid ${backendProcess.pid} /T /F`, { stdio: 'ignore' });
+        // Kill by PID using taskkill
+        try {
+          require('child_process').execSync(`taskkill /pid ${backendProcess.pid} /T /F`, { stdio: 'ignore' });
+        } catch (e) { }
       } else {
         backendProcess.kill('SIGKILL');
       }
     } catch (e) {
-      console.log('Backend cleanup:', e.message);
+      console.log('Backend cleanup error:', e.message);
     }
   }
+
+  // FORCE KILL by name just in case (Windows acting up)
+  if (process.platform === 'win32') {
+    try {
+      require('child_process').execSync('taskkill /IM interview-backend.exe /F', { stdio: 'ignore' });
+    } catch (e) { }
+  }
+}
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+  cleanupBackend();
 });
+
+app.on('before-quit', () => {
+  cleanupBackend();
+});
+
 app.on('window-all-closed', () => {
+  cleanupBackend(); // Ensure cleanup happens even if quit isn't immediate
   if (process.platform !== 'darwin') {
     app.quit();
   }
