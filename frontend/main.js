@@ -8,6 +8,7 @@ let win = null;
 let isRecording = false;
 let isMiniMode = false;
 let backendProcess = null;
+let lastMiniPosition = null; // Remember where the mini icon was dragged to
 
 // ============ AUTO-UPDATER SETUP ============
 autoUpdater.autoDownload = false;
@@ -339,18 +340,30 @@ app.whenReady().then(() => {
   /* ---- Ctrl+Q: Toggle Mini Mode ---- */
   globalShortcut.register('CommandOrControl+Q', () => {
     if (!win) return;
-    const [x, y] = win.getPosition();
 
     if (!isMiniMode) {
       // Switch to Mini Mode - small floating icon
-      win.setOpacity(1.0); // Fully opaque
-      win.setBounds({ x, y, width: 28, height: 28 });
+      const miniPos = lastMiniPosition || { x: win.getPosition()[0], y: win.getPosition()[1] };
+      win.setOpacity(1.0);
+      win.setBackgroundColor('#00000000');
+      win.setBounds({ x: miniPos.x, y: miniPos.y, width: 100, height: 100 });
       win.setResizable(false);
-      win.webContents.executeJavaScript(`document.body.classList.add('mini');`);
+      win.webContents.executeJavaScript(`
+        document.body.classList.add('mini');
+        document.getElementById('mini-icon').onclick = function(e) {
+          e.preventDefault();
+          require('electron').ipcRenderer.send('expand-from-mini');
+        };
+        void 0; // Return undefined to avoid cloning error
+      `);
       isMiniMode = true;
     } else {
+      // Save mini position before expanding
+      const [mx, my] = win.getPosition();
+      lastMiniPosition = { x: mx, y: my };
       // Expand back
-      win.setOpacity(0.95); // Restore slight transparency
+      win.setOpacity(0.95);
+      win.setBackgroundColor('#1e1e1eAA');
       win.setResizable(true);
       const bounds = centerTop(800, 600);
       win.setBounds(bounds);
@@ -429,6 +442,21 @@ app.whenReady().then(() => {
   tray.setContextMenu(contextMenu);
   tray.on('click', () => (win.isVisible() ? win.hide() : win.show()));
 
+
+  /* ---- IPC: Expand from Mini Mode ---- */
+  ipcMain.on('expand-from-mini', () => {
+    if (!win || !isMiniMode) return;
+    // Save mini position before expanding
+    const [mx, my] = win.getPosition();
+    lastMiniPosition = { x: mx, y: my };
+    win.setOpacity(0.95);
+    win.setBackgroundColor('#1e1e1eAA');
+    win.setResizable(true);
+    const bounds = centerTop(800, 600);
+    win.setBounds(bounds);
+    win.webContents.executeJavaScript(`document.body.classList.remove('mini');`);
+    isMiniMode = false;
+  });
 
   /* ---- IPC: Close App ---- */
   ipcMain.on('close-app', () => {

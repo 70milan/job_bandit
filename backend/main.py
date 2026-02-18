@@ -896,10 +896,11 @@ async def stream_ai_response(req: AIRequest):
                 model = req.text_model if req.text_model and req.text_model in AVAILABLE_TEXT_MODELS else DEFAULT_TEXT_MODEL
                 print(f"[STREAM] Using model: {model} (text-only, user selected: {req.text_model})")
 
-            # GPT-5+ models use max_completion_tokens and don't support custom temperature
+            # GPT-5+ models are reasoning models: they use tokens for internal thinking
+            # before producing output, so they need a much higher token limit
             token_param = {}
             if model.startswith("gpt-5"):
-                token_param["max_completion_tokens"] = 600
+                token_param["max_completion_tokens"] = 4096
             else:
                 token_param["max_tokens"] = 600
                 token_param["temperature"] = 0.7
@@ -1119,10 +1120,10 @@ async def generate_ai_response(req: AIRequest):
         except Exception as _:
             pass
 
-        # GPT-5+ models use max_completion_tokens and don't support custom temperature
+        # GPT-5+ models are reasoning models: they need higher token limit for thinking + output
         token_param = {}
         if model.startswith("gpt-5"):
-            token_param["max_completion_tokens"] = 600
+            token_param["max_completion_tokens"] = 4096
         else:
             token_param["max_tokens"] = 600
             token_param["temperature"] = 0.7

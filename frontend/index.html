@@ -65,6 +65,14 @@
     }
 
     body.mini #mini-icon {
+      animation: icon-pulse 3s ease-in-out infinite;
+    }
+
+    body.mini #mini-icon:hover {
+      animation: none;
+    }
+
+    body.mini #mini-icon {
       display: flex;
     }
 
@@ -82,14 +90,26 @@
       color: rgba(255, 255, 255, 0.45);
       border: none;
       box-shadow: none;
-      cursor: default;
+      cursor: pointer;
       transition: color 0.2s ease;
-      -webkit-app-region: no-drag;
+      -webkit-app-region: drag;
       user-select: none;
     }
 
     #mini-icon:hover {
-      color: rgba(255, 255, 255, 0.85);
+      color: #39ff14;
+    }
+
+    @keyframes icon-pulse {
+
+      0%,
+      100% {
+        color: rgba(57, 255, 20, 0.4);
+      }
+
+      50% {
+        color: #39ff14;
+      }
     }
 
     @keyframes pulse {
