@@ -49,18 +49,21 @@ function initializeStreamingAI() {
             responseArea.innerText = '';
             let fullResponse = '';
 
-            // Read stream
+            // Read stream with proper SSE line buffering
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
+            let buffer = '';
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
+                buffer += decoder.decode(value, { stream: true });
+                const parts = buffer.split('\n');
+                // Keep the last part in buffer (may be incomplete)
+                buffer = parts.pop();
 
-                for (const line of lines) {
+                for (const line of parts) {
                     if (line.startsWith('data: ')) {
                         try {
                             const data = JSON.parse(line.substring(6));
@@ -98,12 +101,33 @@ function initializeStreamingAI() {
                                         }
                                     }
                                 }
+                                // Show which model was used in status bar
+                                if (data.model) {
+                                    const statusTextEl = document.getElementById('status-text');
+                                    if (statusTextEl) {
+                                        const displayName = data.model.replace('gpt-', 'GPT-').replace('-turbo', '');
+                                        statusTextEl.innerText = displayName + ' ✓';
+                                    }
+                                }
                             }
                         } catch (jsonError) {
-                            // Ignore malformed JSON
+                            // Re-throw API errors, only ignore actual JSON parse failures
+                            if (jsonError instanceof SyntaxError) {
+                                console.warn('[STREAM] Malformed JSON:', line);
+                            } else {
+                                throw jsonError;
+                            }
                         }
                     }
                 }
+            }
+
+            // If stream ended with no content, show error
+            if (!fullResponse.trim()) {
+                const modelName = window.selectedModel || 'unknown';
+                responseArea.innerText = `Error: No response from model "${modelName}".\n\nThe model may have rejected the request. Try a different model or check the backend console for details.`;
+                btnGenerate.classList.remove('active');
+                return;
             }
 
             // Format complete response
@@ -156,6 +180,16 @@ function initializeStreamingAI() {
             console.error('AI Generation Error:', e);
             responseArea.innerText = `Error: ${e.message}\n\nCheck if backend is running on port 5050.`;
             btnGenerate.classList.remove('active');
+        }
+    };
+
+
+
+    // Scroll helper for global shortcuts
+    window.scrollAIOutput = (direction) => {
+        const el = document.getElementById('response-area');
+        if (el) {
+            el.scrollTop += (direction * 50); // increased scroll speed
         }
     };
 

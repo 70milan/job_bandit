@@ -342,14 +342,16 @@ app.whenReady().then(() => {
     const [x, y] = win.getPosition();
 
     if (!isMiniMode) {
-      // Switch to Mini Mode - small floating box
+      // Switch to Mini Mode - small floating icon
       win.setOpacity(1.0); // Fully opaque
       win.setBounds({ x, y, width: 28, height: 28 });
+      win.setResizable(false);
       win.webContents.executeJavaScript(`document.body.classList.add('mini');`);
       isMiniMode = true;
     } else {
       // Expand back
       win.setOpacity(0.95); // Restore slight transparency
+      win.setResizable(true);
       const bounds = centerTop(800, 600);
       win.setBounds(bounds);
       win.webContents.executeJavaScript(`document.body.classList.remove('mini');`);
@@ -397,6 +399,22 @@ app.whenReady().then(() => {
     const bounds = centerTop(800, 600);
     win.setBounds(bounds);
     console.log('🔄 Window reset to default size');
+  });
+
+  /* ---- Ctrl+Shift+Up: Scroll AI Up ---- */
+  globalShortcut.register('CommandOrControl+Shift+Up', () => {
+    if (!win) return;
+    win.webContents.executeJavaScript(`
+      if (window.scrollAIOutput) { window.scrollAIOutput(-1); }
+    `);
+  });
+
+  /* ---- Ctrl+Shift+Down: Scroll AI Down ---- */
+  globalShortcut.register('CommandOrControl+Shift+Down', () => {
+    if (!win) return;
+    win.webContents.executeJavaScript(`
+      if (window.scrollAIOutput) { window.scrollAIOutput(1); }
+    `);
   });
 
   /* ---- Tray ---- */

@@ -51,16 +51,16 @@
     }
 
     body.mini {
-      background-color: #1a1a2e !important;
-      background: #1a1a2e !important;
-      border-radius: 12px;
+      background-color: transparent !important;
+      background: transparent !important;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
     }
 
-    body.mini #main-container {
+    body.mini>*:not(#mini-icon) {
       display: none !important;
     }
 
@@ -72,17 +72,24 @@
       display: none;
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      border-radius: 6px;
+      background: transparent;
+      border-radius: 50%;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
-      font-family: 'Courier New', monospace;
-      font-weight: bold;
-      color: #00d4ff;
-      border: 1px solid rgba(0, 212, 255, 0.5);
-      box-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
-      cursor: pointer;
+      font-size: 16px;
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.45);
+      border: none;
+      box-shadow: none;
+      cursor: default;
+      transition: color 0.2s ease;
+      -webkit-app-region: no-drag;
+      user-select: none;
+    }
+
+    #mini-icon:hover {
+      color: rgba(255, 255, 255, 0.85);
     }
 
     @keyframes pulse {
@@ -443,6 +450,7 @@
           <input type="text" id="setup-session-name" placeholder="e.g., Google_DataEngineer_Dec2025" autocomplete="off"
             style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; background: rgba(255, 255, 255, 0.03); color: #fff; font-family: 'Segoe UI', Arial; font-size: 14px; outline: none;" />
         </div>
+
         <div style="width: 100%; display: flex; flex-direction: column; align-items: stretch;"><label
             style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1.5px; text-align: left; font-weight: 500;">Resume</label>
           <div style="display: flex; align-items: center; gap: 10px;">
@@ -648,11 +656,14 @@
   <div id="session-error-popup"
     style="position: fixed; bottom: 20px; left: 20px; background: rgba(220, 50, 50, 0.15); border: 1px solid rgba(220, 50, 50, 0.4); border-radius: 3px; padding: 10px 14px; color: #ff6b6b; font-size: 10px; z-index: 10000; display: none; opacity: 0; transition: opacity 0.2s; pointer-events: none; max-width: 200px; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase;">
     You need to start the session first</div>
-  <div id="mini-icon">JB</div>
+  <div id="mini-icon">⌘</div>
   <div id="main-container">
     <div id="controls"><button id="btn-system" class="btn">System (Ctrl+R)</button><button id="btn-mic" class="btn">Mic
-        (Ctrl+M)</button><button id="btn-screen" class="btn">Screen (K) | Save (S)</button><button id="btn-generate"
-        class="btn">Process (Ctrl+Enter)</button>
+        (Ctrl+M)</button><button id="btn-screen" class="btn"
+        style="flex-direction: column; line-height: 1.2; padding: 4px 10px; height: auto;">
+        <span>Screen (K)</span>
+        <span style="font-size: 9px; opacity: 0.7;">Save Screen (S)</span>
+      </button><button id="btn-generate" class="btn">Process (Ctrl+Enter)</button>
       <div id="session-timer"
         style="padding: 6px 14px; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); font-weight: 600; font-size: 16px; font-family: 'Consolas', 'Courier New', monospace; display: flex; align-items: center; gap: 8px; flex-shrink: 0; letter-spacing: 2px; transition: all 0.5s ease;">
         <span id="session-timer-text">2:00:00</span>
@@ -884,7 +895,6 @@
           console.error('WebSocket Error:', err);
           statusText.innerText = 'WS Error';
           statusDot.className = 'dot error';
-          responseArea.innerText += '\n(WebSocket Error)';
         };
 
         socket.onclose = () => {

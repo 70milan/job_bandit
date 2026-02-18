@@ -896,26 +896,53 @@ async def stream_ai_response(req: AIRequest):
                 model = req.text_model if req.text_model and req.text_model in AVAILABLE_TEXT_MODELS else DEFAULT_TEXT_MODEL
                 print(f"[STREAM] Using model: {model} (text-only, user selected: {req.text_model})")
 
-            # Stream the response
-            completion = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                stream=True,
-                max_tokens=600,
-                temperature=0.7
-            )
+            # GPT-5+ models use max_completion_tokens and don't support custom temperature
+            token_param = {}
+            if model.startswith("gpt-5"):
+                token_param["max_completion_tokens"] = 600
+            else:
+                token_param["max_tokens"] = 600
+                token_param["temperature"] = 0.7
+            
+            # Send heartbeat to establish SSE connection
+            yield f"data: {json.dumps({'heartbeat': True})}\n\n"
+            
+            # Create completion - catch errors separately so they always reach the client
+            try:
+                completion = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    stream=True,
+                    **token_param
+                )
+            except Exception as create_err:
+                print(f"[STREAM] OpenAI create() error: {create_err}")
+                yield f"data: {json.dumps({'error': str(create_err)})}\n\n"
+                return
             
             # Collect full response for history
             full_response = ""
             
-            # Yield chunks as they arrive
-            for chunk in completion:
-                if chunk.choices[0].delta.content:
-                    content = chunk.choices[0].delta.content
-                    full_response += content
-                    # Send as Server-Sent Event format
-                    yield f"data: {json.dumps({'chunk': content})}\n\n"
+            # Yield chunks as they arrive - wrap in try/except for iteration errors
+            try:
+                for chunk in completion:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        full_response += content
+                        # Send as Server-Sent Event format
+                        yield f"data: {json.dumps({'chunk': content})}\n\n"
+            except Exception as iter_err:
+                err_msg = str(iter_err)[:200]
+                print(f"[STREAM] Iteration error: {iter_err}")
+                yield f"data: {json.dumps({'error': err_msg})}\n\n"
+                return
             
+            # Check for empty response
+            if not full_response.strip():
+                print(f"[STREAM] WARNING: Model {model} returned empty response")
+                yield f"data: {json.dumps({'error': f'Model {model} returned an empty response. The model may not support this request format.'})}\n\n"
+                return
+
             # Save to conversation history only if save_to_context is True
             # (skip for one-shot LeetCode problems, save for scenarios needing follow-up)
             if req.save_to_context:
@@ -954,11 +981,12 @@ async def stream_ai_response(req: AIRequest):
             update_usage(input_tokens, output_tokens, model, image_tokens)
             
             # Send completion signal with usage info
-            yield f"data: {json.dumps({'done': True, 'usage': session_usage})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'model': model, 'usage': session_usage})}\n\n"
             
         except Exception as e:
+            err_msg = str(e)[:200]
             print(f"Streaming AI Error: {e}")
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield f"data: {json.dumps({'error': err_msg})}\n\n"
     
     return StreamingResponse(generate_stream(), media_type="text/event-stream")
 
@@ -1073,7 +1101,8 @@ async def generate_ai_response(req: AIRequest):
             messages.extend(conversation_history)
 
             messages.append({"role": "user", "content": req.transcript})
-            model = "gpt-3.5-turbo"  # Fast model for text-only
+            # Use selected model or default
+            model = req.text_model if req.text_model and req.text_model in AVAILABLE_TEXT_MODELS else DEFAULT_TEXT_MODEL
         
         # DEBUG: print messages being sent to OpenAI to help diagnose which context is used
         try:
@@ -1090,12 +1119,19 @@ async def generate_ai_response(req: AIRequest):
         except Exception as _:
             pass
 
+        # GPT-5+ models use max_completion_tokens and don't support custom temperature
+        token_param = {}
+        if model.startswith("gpt-5"):
+            token_param["max_completion_tokens"] = 600
+        else:
+            token_param["max_tokens"] = 600
+            token_param["temperature"] = 0.7
+        
         completion = client.chat.completions.create(
             model=model,
             messages=messages,
             stream=True,
-            max_tokens=600,
-            temperature=0.7
+            **token_param
         )
         
         full_response = ""

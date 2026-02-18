@@ -10,6 +10,7 @@ let sessionTimerStarted = false;
 let currentSessionName = null;  // Track current session name
 let isLicensed = false; // Track license status
 let sessionStartTimestamp = null; // Track when session started for duration calculation
+let backendReady = false; // Track if backend has finished starting
 
 // License validation (obfuscated)
 const VALID_LICENSE_HASH = 'a3f2b8c1d4e5'; // Simple hash of valid key
@@ -149,8 +150,49 @@ function checkAllInputs() {
     }
 }
 
+// Backend health check - polls until backend is responsive
+async function waitForBackend() {
+    const pastSessionsBtn = document.getElementById('btn-past-sessions');
+    const startBtn = document.getElementById('btn-start-session');
+
+    // Show starting state on Past Sessions button
+    if (pastSessionsBtn) {
+        pastSessionsBtn.innerHTML = '&#9203; Starting...';
+        pastSessionsBtn.style.opacity = '0.4';
+        pastSessionsBtn.style.cursor = 'not-allowed';
+    }
+
+    const poll = async () => {
+        try {
+            const res = await fetch('http://127.0.0.1:5050/sessions', { signal: AbortSignal.timeout(2000) });
+            if (res.ok) {
+                backendReady = true;
+                console.log('[BACKEND] Backend is ready!');
+                if (pastSessionsBtn) {
+                    pastSessionsBtn.innerHTML = 'Past Sessions';
+                    pastSessionsBtn.style.opacity = '1';
+                    pastSessionsBtn.style.cursor = 'pointer';
+                }
+                // Clear any lingering "backend starting" message
+                const status = document.getElementById('setup-status');
+                if (status && status.innerText.includes('starting')) {
+                    status.innerText = '';
+                }
+                return;
+            }
+        } catch (e) {
+            // Backend not ready yet
+        }
+        // Retry in 2 seconds
+        setTimeout(poll, 2000);
+    };
+
+    poll();
+}
+
 // Initialize immediately since script is loaded at end of body
 initSession();
+waitForBackend();
 
 function initSession() {
     const sessionNameInput = document.getElementById('setup-session-name');
@@ -226,6 +268,8 @@ function initSession() {
         jdInput.addEventListener('input', checkAllInputs);
     }
 
+
+
     // Check for saved valid license - grey out and disable if already validated
     const licenseInput = document.getElementById('setup-license');
     const savedLicense = localStorage.getItem('valid_license_key');
@@ -284,6 +328,21 @@ function initSession() {
 
     if (pastSessionsBtn) {
         pastSessionsBtn.onclick = async () => {
+            // Block if backend isn't ready yet
+            if (!backendReady) {
+                const errorPopup = document.getElementById('session-error-popup');
+                if (errorPopup) {
+                    errorPopup.textContent = 'Backend is still starting up, please wait...';
+                    errorPopup.style.display = 'block';
+                    errorPopup.style.opacity = '1';
+                    setTimeout(() => {
+                        errorPopup.style.opacity = '0';
+                        setTimeout(() => errorPopup.style.display = 'none', 200);
+                    }, 3000);
+                }
+                return;
+            }
+
             pastSessionsModal.style.display = 'flex';
             const listContainer = document.getElementById('past-sessions-list');
             listContainer.innerHTML = '<div style="color: rgba(255,255,255,0.4); font-size: 12px; text-align: center; padding: 20px;">Loading...</div>';
@@ -297,7 +356,7 @@ function initSession() {
                         <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 12px; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;" 
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-                            <div style="flex: 1; cursor: pointer;" onclick="window.openPastSession('${session.name.replace(/'/g, "\\'")}')">
+                            <div style="flex: 1; cursor: pointer;" onclick="window.openPastSession('${session.name.replace(/'/g, "\\'")}')"> 
                                 <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-bottom: 4px;">${session.name}</div>
                                 <div style="color: rgba(255,255,255,0.4); font-size: 10px;">${session.created_at || 'No date'}</div>
                                 <div style="color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${session.job_description_preview || ''}</div>
@@ -440,6 +499,8 @@ window.openPastSession = async function (sessionName) {
         status.innerText = 'Loading session...';
         const loadRes = await fetch(`http://127.0.0.1:5050/session/load/${encodeURIComponent(sessionName)}`);
         const sessionData = await loadRes.json();
+
+
 
         if (sessionData.status !== 'ok') {
             status.innerText = sessionData.error || 'Failed to load session';
@@ -1043,50 +1104,25 @@ async function endSession() {
                 .then(data => {
                     if (data.models) {
                         modelDropdown.innerHTML = data.models.map(m => {
-                            const isGPT5 = m.id.startsWith('gpt-5');
-                            const comingSoonTag = isGPT5 ? ' <span style="color: rgba(255, 150, 100, 0.9); font-weight: 600; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 6px;">(Coming Soon)</span>' : '';
-                            const opacity = isGPT5 ? 'opacity: 0.5;' : '';
-                            const cursor = isGPT5 ? 'cursor: not-allowed;' : 'cursor: pointer;';
-
                             return `
-                            <div class="model-option ${isGPT5 ? 'disabled' : ''}" data-model="${m.id}" data-disabled="${isGPT5}" style="padding: 8px 12px; ${cursor} border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; ${opacity}">
-                                <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 500;">${m.name}${comingSoonTag}</div>
+                            <div class="model-option" data-model="${m.id}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
+                                <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 500;">${m.name}</div>
                                 <div style="color: rgba(255,255,255,0.4); font-size: 9px; margin-top: 2px;">
                                     ${m.speed} · ${m.cost} · ${m.accuracy} — ${m.description}
                                 </div>
                             </div>
                         `}).join('');
 
-                        // Add hover effect and click handling
                         modelDropdown.querySelectorAll('.model-option').forEach(opt => {
-                            const isDisabled = opt.dataset.disabled === 'true';
-
-                            if (!isDisabled) {
-                                opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.08)');
-                                opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
-                                opt.addEventListener('click', () => {
-                                    const modelId = opt.dataset.model;
-                                    window.selectedModel = modelId;
-                                    modelBtn.textContent = opt.querySelector('div').textContent.replace('(Coming Soon)', '').trim();
-                                    modelDropdown.style.display = 'none';
-                                    console.log('[MODEL] Selected:', modelId);
-                                });
-                            } else {
-                                // Show error popup for GPT-5 models
-                                opt.addEventListener('click', () => {
-                                    const errorPopup = document.getElementById('session-error-popup');
-                                    if (errorPopup) {
-                                        errorPopup.textContent = 'GPT-5 models coming soon!';
-                                        errorPopup.style.display = 'block';
-                                        errorPopup.style.opacity = '1';
-                                        setTimeout(() => {
-                                            errorPopup.style.opacity = '0';
-                                            setTimeout(() => errorPopup.style.display = 'none', 200);
-                                        }, 2000);
-                                    }
-                                    modelDropdown.style.display = 'none';
-                                });
-                            }
+                            opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.08)');
+                            opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
+                            opt.addEventListener('click', () => {
+                                const modelId = opt.dataset.model;
+                                window.selectedModel = modelId;
+                                modelBtn.textContent = opt.querySelector('div').textContent.trim();
+                                modelDropdown.style.display = 'none';
+                                console.log('[MODEL] Selected:', modelId);
+                            });
                         });
 
                         // Set default

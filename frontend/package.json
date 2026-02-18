@@ -1,7 +1,8 @@
 {
   "name": "windows-command-controller",
-  "version": "1.0.38",
+  "version": "2.0.1",
   "description": "Windows Command Controller",
+  "author": "70milan",
   "main": "main.js",
   "scripts": {
     "start": "npm run electron",
