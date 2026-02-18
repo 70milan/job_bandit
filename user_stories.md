@@ -25,4 +25,5 @@ Creating a professional, highly interactive, and responsive interface.
 Handling security, safety, and professional distribution.
 
 - **User Story 4.1:** As a developer, I want all personal info (resumes/profiles) completely scrubbed and ignored from the Git history for security. (Implemented: Scrubbed personal info and build artifacts from all branches. Updated README with developer setup instructions.)
-- **User Story 4.2:** As a business owner, I want an automated licensing implementation that activates the hardware/software after purchase.
+- **User Story 4.2:** As a business owner, I want an offline, hardware-locked licensing system where users send me a Request Code and I generate a License Key, eliminating the need for a central server.
+- **User Story 4.3:** As a developer, I want to completely expunge all legacy hardcoded license keys from `backend/main.py` locally AND from all git history/branches to prevent forensic retrieval.
