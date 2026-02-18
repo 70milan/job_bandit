@@ -296,7 +296,7 @@ app.whenReady().then(() => {
 
   globalShortcut.register('CommandOrControl+R', () => {
     if (!win) return;
-    console.log('🖥️ System Audio Capture Triggered');
+    console.log('System Audio Capture Triggered');
     win.webContents.executeJavaScript(`
       if (window.toggleSystemCapture) { window.toggleSystemCapture(); }
     `);
@@ -305,7 +305,7 @@ app.whenReady().then(() => {
   /* ---- Ctrl+Enter: Generate AI ---- */
   globalShortcut.register('CommandOrControl+Return', () => {
     if (!win) return;
-    console.log('🤖 Generate AI Triggered');
+    console.log('Generate AI Triggered');
     win.webContents.executeJavaScript(`
       if (window.generateAIOnly) { window.generateAIOnly(); }
     `);
@@ -346,15 +346,10 @@ app.whenReady().then(() => {
       const miniPos = lastMiniPosition || { x: win.getPosition()[0], y: win.getPosition()[1] };
       win.setOpacity(1.0);
       win.setBackgroundColor('#00000000');
-      win.setBounds({ x: miniPos.x, y: miniPos.y, width: 47, height: 47 });
+      win.setBounds({ x: miniPos.x, y: miniPos.y, width: 65, height: 65 });
       win.setResizable(false);
       win.webContents.executeJavaScript(`
         document.body.classList.add('mini');
-        document.getElementById('mini-icon').onclick = function(e) {
-          e.preventDefault();
-          require('electron').ipcRenderer.send('expand-from-mini');
-        };
-        void 0; // Return undefined to avoid cloning error
       `);
       isMiniMode = true;
     } else {

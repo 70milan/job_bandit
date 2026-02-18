@@ -1,4 +1,8 @@
-npm run electron -- front
+-- front
+npm run start:dev
+
+
+npm run electron 
 
 -- back
 uvicorn main:app --reload --host 127.0.0.1 --port 5050 

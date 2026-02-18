@@ -51,7 +51,7 @@ AVAILABLE_TEXT_MODELS = {
     "gpt-5": {"name": "GPT-5", "speed": "Slower", "cost": "Premium", "accuracy": "Best", "desc": "Maximum quality"}
 }
 
-DEFAULT_TEXT_MODEL = "gpt-3.5-turbo"
+DEFAULT_TEXT_MODEL = "gpt-4o"
 
 def count_tokens(text: str) -> int:
     """Count tokens in text"""
@@ -92,9 +92,9 @@ def estimate_image_tokens(base64_data: str, model: str = "gpt-4o") -> int:
         print(f"[IMAGE TOKENS] Error estimating: {e}, using default 500")
         return 500  # Safe default for a medium image
 
-def calculate_cost(input_tokens: int, output_tokens: int, model: str = "gpt-3.5-turbo", image_tokens: int = 0) -> float:
+def calculate_cost(input_tokens: int, output_tokens: int, model: str = "gpt-4o", image_tokens: int = 0) -> float:
     """Calculate cost in dollars"""
-    pricing = PRICING.get(model, PRICING["gpt-3.5-turbo"])
+    pricing = PRICING.get(model, PRICING["gpt-4o"])
     total_input = input_tokens + image_tokens
     input_cost = (total_input / 1_000_000) * pricing["input"]
     output_cost = (output_tokens / 1_000_000) * pricing["output"]

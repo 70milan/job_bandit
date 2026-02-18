@@ -21,6 +21,9 @@ function initializeStreamingAI() {
 
         btnGenerate.classList.add('active');
         responseArea.innerText = 'Generating...';
+        const startTime = Date.now();
+        const responseTimeEl = document.getElementById('response-time');
+        if (responseTimeEl) responseTimeEl.innerText = '';
 
         try {
             const requestBody = {
@@ -46,7 +49,7 @@ function initializeStreamingAI() {
             }
 
             // Clear and start streaming
-            responseArea.innerText = '';
+            // responseArea.innerText = ''; // Removed to keep "Generating..." visible
             let fullResponse = '';
 
             // Read stream with proper SSE line buffering
@@ -80,6 +83,10 @@ function initializeStreamingAI() {
 
                             if (data.done) {
                                 console.log('[STREAM] Complete');
+                                if (responseTimeEl) {
+                                    const duration = (Date.now() - startTime) / 1000;
+                                    responseTimeEl.innerText = duration.toFixed(1) + 's';
+                                }
                                 // Update API cost display with color gradient
                                 if (data.usage && data.usage.total_cost !== undefined) {
                                     const apiCostEl = document.getElementById('api-cost');
@@ -105,8 +112,14 @@ function initializeStreamingAI() {
                                 if (data.model) {
                                     const statusTextEl = document.getElementById('status-text');
                                     if (statusTextEl) {
-                                        const displayName = data.model.replace('gpt-', 'GPT-').replace('-turbo', '');
-                                        statusTextEl.innerText = displayName + ' ✓';
+                                        // Reset status text
+                                        statusTextEl.innerText = window.isSessionActive ? 'Session Running' : 'Ready';
+
+                                        // Append model badge to response
+                                        const displayName = data.model;
+                                        fullResponse += '\n\n\n\n\n[Model Used: ' + displayName + ']';
+                                        responseArea.innerText = fullResponse;
+                                        responseArea.scrollTop = responseArea.scrollHeight;
                                     }
                                 }
                             }

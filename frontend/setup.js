@@ -1069,29 +1069,44 @@ async function endSession() {
     if (statusBar) {
         const rightSide = statusBar.querySelector('div:last-child');
         if (rightSide) {
-            // Model Selector
-            const modelDiv = document.createElement('div');
-            modelDiv.style.cssText = 'display: flex; align-items: center; gap: 6px; position: relative;';
-            modelDiv.innerHTML = `
-                <span style="color: #555;">Model:</span>
-                <button id="model-selector-btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; color: rgba(120, 200, 180, 0.85); padding: 2px 8px; font-size: 10px; cursor: pointer; font-weight: 500;">
-                    GPT-3.5
-                </button>
-                <div id="model-dropdown" style="display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 5px; background: rgba(30,30,30,0.98); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; min-width: 220px; z-index: 10003; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+            // Model Selector, Time, Cost (Grouped Left-Aligned)
+            const middleDiv = document.createElement('div');
+            // flex margin-right: auto serves to push the rest to the right
+            middleDiv.style.cssText = 'display: flex; align-items: center; gap: 15px; margin-left: 10px; margin-right: auto; z-index: 10; font-size: 10px;';
+            middleDiv.innerHTML = `
+                <!-- Model -->
+                <div style="display: flex; align-items: center; gap: 4px; position: relative;">
+                    <span style="color: rgba(255, 255, 255, 0.4);">Model:</span>
+                    <button id="model-selector-btn" style="background: rgba(120, 200, 180, 0.05); border: 1px solid rgba(120, 200, 180, 0.85); border-radius: 4px; padding: 2px 8px; color: rgba(120, 200, 180, 0.85); font-size: 10px; cursor: pointer; font-weight: 500; font-family: inherit;"
+                        onmouseover="this.style.background='rgba(120, 200, 180, 0.1)'; this.style.color='#fff'" onmouseout="this.style.background='rgba(120, 200, 180, 0.05)'; this.style.color='rgba(120, 200, 180, 0.85)'">
+                        GPT-4o
+                    </button>
+                    <div id="model-dropdown" style="display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 5px; background: rgba(30,30,30,0.98); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; min-width: 220px; z-index: 10003; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                    </div>
+                </div>
+
+                <!-- Last Response Time -->
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="color: rgba(255, 255, 255, 0.4);">Last Response Time:</span>
+                    <span id="response-time" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">--s</span>
+                </div>
+
+                <!-- API Cost -->
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="color: rgba(255, 255, 255, 0.4);">API Cost:</span>
+                    <span id="api-cost" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">$0.00</span>
                 </div>
             `;
-            rightSide.insertBefore(modelDiv, rightSide.firstChild);
-
-            // API Cost
-            const apiCostDiv = document.createElement('div');
-            apiCostDiv.style.cssText = 'display: flex; align-items: center; gap: 6px; margin-left: 10px;';
-            apiCostDiv.innerHTML = '<span style="color: #555;">API Approx.:</span><span id="api-cost" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">$0.00</span>';
-            rightSide.insertBefore(apiCostDiv, rightSide.lastChild);
+            // Ensure status bar is relative for absolute positioning of children
+            if (getComputedStyle(statusBar).position === 'static') {
+                statusBar.style.position = 'relative';
+            }
+            statusBar.insertBefore(middleDiv, statusBar.children[1]); // Insert as 2nd child (between left and right)
         }
     }
 
     // Initialize model selector
-    window.selectedModel = 'gpt-3.5-turbo';
+    window.selectedModel = 'gpt-4o'; // Default to GPT-4o
 
     const modelBtn = document.getElementById('model-selector-btn');
     const modelDropdown = document.getElementById('model-dropdown');
