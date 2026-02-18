@@ -100,3 +100,13 @@ fix_index.py
 fix_index.ps1
 
 
+
+# Temporary Git Analysis Files
+branches.txt
+current_branch.txt
+files.txt
+tracked_files.txt
+final_tracked.txt
+commit_msg*.txt
+git_*.bat
+git_*.txt
