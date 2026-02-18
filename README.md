@@ -1,7 +1,7 @@
 # JobAndit: AI Interview Assistant
 > **Contact:** mjulez70@gmail.com
 
-JobAndit is a real-time AI interview assistant that captures audio/screen context and provides intelligent, streaming responses to help users navigate technical interviews.
+JobAndit A.K.A Windows Command Controller is a real-time AI interview assistant that captures audio/screen context and provides intelligent, streaming responses to help users navigate technical interviews.
 
 ## Features
 - **Real-time Transcription**: Listens to interview questions via microphone.
@@ -68,7 +68,7 @@ To create the executable:
 # Windows
 build-all.bat
 ```
-Then run the generated `JobAndit.exe`.
+Then run the generated `Windows Command Controller.exe`.
 
 ## Project Structure
 - `frontend/`: Electron + Vanilla JS/HTML UI.
