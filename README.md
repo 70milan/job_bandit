@@ -1,4 +1,5 @@
 # JobAndit: AI Interview Assistant
+> **Contact:** mjulez70@gmail.com
 
 JobAndit is a real-time AI interview assistant that captures audio/screen context and provides intelligent, streaming responses to help users navigate technical interviews.
 
