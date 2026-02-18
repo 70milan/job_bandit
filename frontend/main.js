@@ -346,7 +346,7 @@ app.whenReady().then(() => {
       const miniPos = lastMiniPosition || { x: win.getPosition()[0], y: win.getPosition()[1] };
       win.setOpacity(1.0);
       win.setBackgroundColor('#00000000');
-      win.setBounds({ x: miniPos.x, y: miniPos.y, width: 100, height: 100 });
+      win.setBounds({ x: miniPos.x, y: miniPos.y, width: 47, height: 47 });
       win.setResizable(false);
       win.webContents.executeJavaScript(`
         document.body.classList.add('mini');
