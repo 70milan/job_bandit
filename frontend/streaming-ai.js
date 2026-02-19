@@ -51,6 +51,7 @@ function initializeStreamingAI() {
             // Clear and start streaming
             // responseArea.innerText = ''; // Removed to keep "Generating..." visible
             let fullResponse = '';
+            let usedModel = '';
 
             // Read stream with proper SSE line buffering
             const reader = res.body.getReader();
@@ -115,11 +116,9 @@ function initializeStreamingAI() {
                                         // Reset status text
                                         statusTextEl.innerText = window.isSessionActive ? 'Session Running' : 'Ready';
 
-                                        // Append model badge to response
+                                        // Store model name for convo capture (badge added after formatting)
                                         const displayName = data.model;
-                                        fullResponse += '\n\n\n\n\n[Model Used: ' + displayName + ']';
-                                        responseArea.innerText = fullResponse;
-                                        responseArea.scrollTop = responseArea.scrollHeight;
+                                        usedModel = displayName;
                                     }
                                 }
                             }
@@ -175,6 +174,14 @@ function initializeStreamingAI() {
 
             responseArea.innerHTML = formattedResponse;
 
+            // Add styled model badge after formatted HTML
+            if (usedModel) {
+                const modelBadge = document.createElement('div');
+                modelBadge.style.cssText = 'margin-top: 20px; padding: 6px 10px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; letter-spacing: 0.5px;';
+                modelBadge.innerHTML = '<span style="color: #EEFF00; font-weight: 600;">Model Used: </span><span style="color: #FF6D00; font-weight: 600;">' + usedModel + '</span>';
+                responseArea.appendChild(modelBadge);
+            }
+
             responseArea.querySelectorAll('pre code').forEach((block) => {
                 hljs.highlightElement(block);
             });
@@ -182,6 +189,30 @@ function initializeStreamingAI() {
             transcriptSection.classList.add('compact');
             responseSection.classList.add('expanded');
             responseArea.scrollTop = 0;
+
+            // === Capture to Conversation So Far ===
+            const convoArea = document.getElementById('conversation-area');
+            if (convoArea) {
+                const pairDiv = document.createElement('div');
+                pairDiv.style.cssText = 'border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; padding: 8px; background: rgba(255,255,255,0.02);';
+
+                // Input (transcript/question)
+                const inputText = transcript || '(screenshot analysis)';
+                const qDiv = document.createElement('div');
+                qDiv.style.cssText = 'color: #bbb; font-size: 11px; line-height: 1.4; margin-bottom: 6px; padding: 4px 8px; border-left: 2px solid #666; border-radius: 2px;';
+                qDiv.innerHTML = '<strong style="color: rgba(255,255,255,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Input</strong><br>' + inputText.substring(0, 200) + (inputText.length > 200 ? '...' : '');
+                pairDiv.appendChild(qDiv);
+
+                // AI response (truncated for readability)
+                const cleanResponse = fullResponse.replace(/\n{3,}/g, '\n').replace(/\[Model Used:.*\]/, '').trim();
+                const rDiv = document.createElement('div');
+                rDiv.style.cssText = 'color: #ddd; font-size: 11px; line-height: 1.4; padding: 4px 8px; border-left: 2px solid rgba(100,255,150,0.4); border-radius: 2px; max-height: 80px; overflow-y: auto;';
+                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">AI' + (usedModel ? ' (' + usedModel + ')' : '') + '</strong><br>' + cleanResponse.substring(0, 300) + (cleanResponse.length > 300 ? '...' : '');
+                pairDiv.appendChild(rDiv);
+
+                convoArea.appendChild(pairDiv);
+                convoArea.scrollTop = convoArea.scrollHeight;
+            }
 
             if (capturedScreenshot) {
                 capturedScreenshot = null;

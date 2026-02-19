@@ -452,6 +452,43 @@ function initSession() {
         };
     }
 
+    // Conversation So Far button and modal
+    const convoBtn = document.getElementById('btn-conversation');
+    const convoModal = document.getElementById('conversation-modal');
+    const closeConvoX = document.getElementById('close-conversation-modal');
+    const closeConvoBtn = document.getElementById('btn-close-convo-modal');
+
+    if (convoBtn) {
+        convoBtn.onclick = () => {
+            const convoArea = document.getElementById('conversation-area');
+            const modalList = document.getElementById('conversation-modal-list');
+            if (!modalList) return;
+
+            // Copy entries from hidden data container into modal
+            modalList.innerHTML = '';
+            if (convoArea && convoArea.children.length > 0) {
+                Array.from(convoArea.children).forEach(child => {
+                    modalList.appendChild(child.cloneNode(true));
+                });
+            } else {
+                modalList.innerHTML = '<div style="color: rgba(255,255,255,0.3); font-size: 12px; text-align: center; padding: 30px;">No conversation yet.</div>';
+            }
+
+            if (convoModal) convoModal.style.display = 'flex';
+        };
+    }
+
+    const closeConvoModal = () => {
+        if (convoModal) convoModal.style.display = 'none';
+    };
+    if (closeConvoX) closeConvoX.onclick = closeConvoModal;
+    if (closeConvoBtn) closeConvoBtn.onclick = closeConvoModal;
+    if (convoModal) {
+        convoModal.onclick = (e) => {
+            if (e.target === convoModal) closeConvoModal();
+        };
+    }
+
     // API Key info click handler
     const apikeyInfo = document.getElementById('apikey-info');
     if (apikeyInfo) {
@@ -569,7 +606,7 @@ window.openPastSession = async function (sessionName) {
                 if (entry.question) {
                     const qDiv = document.createElement('div');
                     qDiv.style.cssText = 'color: #ccc; font-size: 12px; line-height: 1.5; margin-bottom: 8px; padding: 6px 10px; background: rgba(255,255,255,0.03); border-left: 2px solid #888; border-radius: 3px;';
-                    qDiv.innerHTML = `<strong style="color: rgba(255,255,255,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">You</strong><br>${entry.question}`;
+                    qDiv.innerHTML = `<strong style="color: rgba(255,255,255,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Input</strong><br>${entry.question}`;
                     pairDiv.appendChild(qDiv);
                 }
 
@@ -577,7 +614,7 @@ window.openPastSession = async function (sessionName) {
                 if (entry.response) {
                     const rDiv = document.createElement('div');
                     rDiv.style.cssText = 'color: #eee; font-size: 12px; line-height: 1.5; padding: 6px 10px; background: rgba(100,255,150,0.03); border-left: 2px solid rgba(100,255,150,0.5); border-radius: 3px; max-height: 150px; overflow-y: auto;';
-                    rDiv.innerHTML = `<strong style="color: rgba(100,255,150,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">AI</strong><br>${entry.response}`;
+                    rDiv.innerHTML = `<strong style="color: rgba(100,255,150,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">AI${entry.model ? ' (' + entry.model + ')' : ''}</strong><br>${entry.response}`;
                     pairDiv.appendChild(rDiv);
                 }
 
@@ -653,9 +690,40 @@ window.openPastSession = async function (sessionName) {
                     statusText.innerText = 'Session Ready - Click Start';
                 }
 
-                // Hide setup overlay
+                // Hide setup overlay and reset end button state
                 const overlay = document.getElementById('setup-overlay');
                 if (overlay) overlay.style.display = 'none';
+                const endBtnEl = document.getElementById('btn-session-end');
+                if (endBtnEl) endBtnEl.classList.remove('ended');
+
+                // Pre-populate Conversation So Far with past session history
+                const convoArea = document.getElementById('conversation-area');
+                if (convoArea) {
+                    convoArea.innerHTML = '';
+                    if (sessionData.history && Array.isArray(sessionData.history) && sessionData.history.length > 0) {
+                        sessionData.history.forEach(entry => {
+                            const pairDiv = document.createElement('div');
+                            pairDiv.style.cssText = 'border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; padding: 8px; background: rgba(255,255,255,0.02);';
+
+                            if (entry.question) {
+                                const qDiv = document.createElement('div');
+                                qDiv.style.cssText = 'color: #bbb; font-size: 11px; line-height: 1.4; margin-bottom: 6px; padding: 4px 8px; border-left: 2px solid #666; border-radius: 2px;';
+                                qDiv.innerHTML = '<strong style="color: rgba(255,255,255,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Input</strong><br>' + entry.question.substring(0, 200) + (entry.question.length > 200 ? '...' : '');
+                                pairDiv.appendChild(qDiv);
+                            }
+
+                            if (entry.response) {
+                                const rDiv = document.createElement('div');
+                                rDiv.style.cssText = 'color: #ddd; font-size: 11px; line-height: 1.4; padding: 4px 8px; border-left: 2px solid rgba(100,255,150,0.4); border-radius: 2px; max-height: 80px; overflow-y: auto;';
+                                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">AI' + (entry.model ? ' (' + entry.model + ')' : '') + '</strong><br>' + entry.response.substring(0, 300) + (entry.response.length > 300 ? '...' : '');
+                                pairDiv.appendChild(rDiv);
+                            }
+
+                            convoArea.appendChild(pairDiv);
+                        });
+                        convoArea.scrollTop = convoArea.scrollHeight;
+                    }
+                }
 
                 console.log(`[SESSION] Resumed past session: ${sessionName}`);
             };
@@ -881,6 +949,12 @@ async function handleCreateSession() {
         setTimeout(() => {
             const overlay = document.getElementById('setup-overlay');
             overlay.style.display = 'none';
+            // Clear conversation area for fresh sessions
+            const convoArea = document.getElementById('conversation-area');
+            if (convoArea) convoArea.innerHTML = '';
+            // Reset end button state
+            const endBtnEl = document.getElementById('btn-session-end');
+            if (endBtnEl) endBtnEl.classList.remove('ended');
         }, 1200);
 
     } catch (e) {
@@ -1094,11 +1168,13 @@ async function endSession() {
             checkAllInputs(); // Re-evaluate button state based on empty fields
         }
 
-        // Clear transcript and response areas
+        // Clear transcript, response, and conversation areas
         const transcriptArea = document.getElementById('transcript-area');
         const responseArea = document.getElementById('response-area');
+        const conversationArea = document.getElementById('conversation-area');
         if (transcriptArea) transcriptArea.innerHTML = '';
         if (responseArea) responseArea.innerHTML = '';
+        if (conversationArea) conversationArea.innerHTML = '';
 
         // Reset timer display
         const timerText = document.getElementById('session-timer-text');

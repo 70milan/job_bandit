@@ -556,7 +556,7 @@ async def post_profile(data: Dict[str, Any]):
 SESSIONS_DIR = BASE_DIR / 'sessions'
 current_session_name = None
 
-def save_conversation_to_session(question: str, response: str, had_screenshot: bool = False):
+def save_conversation_to_session(question: str, response: str, had_screenshot: bool = False, model: str = ""):
     """Helper function to save a Q&A pair to the current session"""
     global current_session_name
     
@@ -577,7 +577,8 @@ def save_conversation_to_session(question: str, response: str, had_screenshot: b
             'timestamp': datetime.now().isoformat(),
             'question': question,
             'response': response,
-            'had_screenshot': had_screenshot
+            'had_screenshot': had_screenshot,
+            'model': model
         }
         conversation.append(entry)
         
@@ -802,6 +803,7 @@ async def list_sessions():
 @app.get('/session/load/{session_name}')
 async def load_session(session_name: str):
     """Load a previous session's data"""
+    global current_session_name, profile_cache
     try:
         session_dir = SESSIONS_DIR / session_name
         session_file = session_dir / 'session.json'
@@ -819,6 +821,16 @@ async def load_session(session_name: str):
                 history = json.loads(conv_file.read_text(encoding='utf-8'))
             except:
                 history = []
+
+        # Set current session so new conversations are saved here
+        current_session_name = session_name
+        print(f"[SESSION] Set active session to: {session_name}")
+
+        # Restore profile cache for AI context
+        if profile_cache is None:
+            profile_cache = {}
+        profile_cache['job_description'] = data.get('job_description', '')
+        profile_cache['resume_text'] = data.get('resume_text', '')
 
         return {
             "status": "ok",
@@ -1060,7 +1072,7 @@ async def stream_ai_response(req: AIRequest):
             if model.startswith("gpt-5"):
                 token_param["max_completion_tokens"] = 4096
             else:
-                token_param["max_tokens"] = 600
+                token_param["max_tokens"] = 2048
                 token_param["temperature"] = 0.7
             
             # Send heartbeat to establish SSE connection
@@ -1115,7 +1127,7 @@ async def stream_ai_response(req: AIRequest):
                 # Save to session folder if active
                 if current_session_name:
                     try:
-                        save_conversation_to_session(user_msg, full_response, bool(req.screenshot))
+                        save_conversation_to_session(user_msg, full_response, bool(req.screenshot), model)
                     except Exception as save_err:
                         print(f"[SESSION SAVE ERROR] {save_err}")
                 
@@ -1283,7 +1295,7 @@ async def generate_ai_response(req: AIRequest):
         if model.startswith("gpt-5"):
             token_param["max_completion_tokens"] = 4096
         else:
-            token_param["max_tokens"] = 600
+            token_param["max_tokens"] = 2048
             token_param["temperature"] = 0.7
         
         completion = client.chat.completions.create(
@@ -1311,7 +1323,7 @@ async def generate_ai_response(req: AIRequest):
             # Save to session folder if active
             if current_session_name:
                 try:
-                    save_conversation_to_session(user_msg, full_response, bool(req.screenshot))
+                    save_conversation_to_session(user_msg, full_response, bool(req.screenshot), model)
                 except Exception as save_err:
                     print(f"[SESSION SAVE ERROR] {save_err}")
             
