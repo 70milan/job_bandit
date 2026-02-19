@@ -556,7 +556,7 @@ async def post_profile(data: Dict[str, Any]):
 SESSIONS_DIR = BASE_DIR / 'sessions'
 current_session_name = None
 
-def save_conversation_to_session(question: str, response: str, had_screenshot: bool = False, model: str = ""):
+def save_conversation_to_session(question: str, response: str, had_screenshot: bool = False, model: str = "", response_time: float = 0, cost: float = 0):
     """Helper function to save a Q&A pair to the current session"""
     global current_session_name
     
@@ -578,7 +578,9 @@ def save_conversation_to_session(question: str, response: str, had_screenshot: b
             'question': question,
             'response': response,
             'had_screenshot': had_screenshot,
-            'model': model
+            'model': model,
+            'response_time': round(response_time, 1),
+            'cost': round(cost, 6)
         }
         conversation.append(entry)
         
@@ -803,7 +805,7 @@ async def list_sessions():
 @app.get('/session/load/{session_name}')
 async def load_session(session_name: str):
     """Load a previous session's data"""
-    global current_session_name, profile_cache
+    global current_session_name, profile_cache, session_usage
     try:
         session_dir = SESSIONS_DIR / session_name
         session_file = session_dir / 'session.json'
@@ -825,6 +827,14 @@ async def load_session(session_name: str):
         # Set current session so new conversations are saved here
         current_session_name = session_name
         print(f"[SESSION] Set active session to: {session_name}")
+
+        # Reset session usage so API cost starts at $0 for this run
+        session_usage = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_cost": 0,
+            "request_count": 0
+        }
 
         # Restore profile cache for AI context
         if profile_cache is None:
@@ -1078,6 +1088,9 @@ async def stream_ai_response(req: AIRequest):
             # Send heartbeat to establish SSE connection
             yield f"data: {json.dumps({'heartbeat': True})}\n\n"
             
+            import time as _time
+            _start_time = _time.time()
+            
             # Create completion - catch errors separately so they always reach the client
             try:
                 completion = client.chat.completions.create(
@@ -1093,12 +1106,15 @@ async def stream_ai_response(req: AIRequest):
             
             # Collect full response for history
             full_response = ""
+            _ttft = 0  # time to first token
             
             # Yield chunks as they arrive - wrap in try/except for iteration errors
             try:
                 for chunk in completion:
                     if chunk.choices and chunk.choices[0].delta.content:
                         content = chunk.choices[0].delta.content
+                        if not full_response:  # First token
+                            _ttft = _time.time() - _start_time
                         full_response += content
                         # Send as Server-Sent Event format
                         yield f"data: {json.dumps({'chunk': content})}\n\n"
@@ -1114,6 +1130,18 @@ async def stream_ai_response(req: AIRequest):
                 yield f"data: {json.dumps({'error': f'Model {model} returned an empty response. The model may not support this request format.'})}\n\n"
                 return
 
+            # Calculate usage and per-response cost BEFORE saving
+            input_text = "\n".join([m.get('content', '') if isinstance(m.get('content'), str) else str(m.get('content', '')) for m in messages])
+            input_tokens = count_tokens(input_text)
+            output_tokens = count_tokens(full_response)
+            
+            # Estimate image tokens if screenshot was used
+            image_tokens = 0
+            if req.screenshot:
+                image_tokens = estimate_image_tokens(req.screenshot, model)
+            
+            response_cost = calculate_cost(input_tokens, output_tokens, model, image_tokens)
+
             # Save to conversation history only if save_to_context is True
             # (skip for one-shot LeetCode problems, save for scenarios needing follow-up)
             if req.save_to_context:
@@ -1127,7 +1155,7 @@ async def stream_ai_response(req: AIRequest):
                 # Save to session folder if active
                 if current_session_name:
                     try:
-                        save_conversation_to_session(user_msg, full_response, bool(req.screenshot), model)
+                        save_conversation_to_session(user_msg, full_response, bool(req.screenshot), model, response_time=_ttft, cost=response_cost)
                     except Exception as save_err:
                         print(f"[SESSION SAVE ERROR] {save_err}")
                 
@@ -1139,20 +1167,10 @@ async def stream_ai_response(req: AIRequest):
             else:
                 print(f"[STREAM] Skipped saving to history (save_to_context=False)")
             
-            # Calculate and track usage
-            input_text = "\n".join([m.get('content', '') if isinstance(m.get('content'), str) else str(m.get('content', '')) for m in messages])
-            input_tokens = count_tokens(input_text)
-            output_tokens = count_tokens(full_response)
-            
-            # Estimate image tokens if screenshot was used
-            image_tokens = 0
-            if req.screenshot:
-                image_tokens = estimate_image_tokens(req.screenshot, model)
-            
             update_usage(input_tokens, output_tokens, model, image_tokens)
             
-            # Send completion signal with usage info
-            yield f"data: {json.dumps({'done': True, 'model': model, 'usage': session_usage})}\n\n"
+            # Send completion signal with usage info and per-response cost
+            yield f"data: {json.dumps({'done': True, 'model': model, 'usage': session_usage, 'response_cost': round(response_cost, 6), 'ttft': round(_ttft, 2)})}\n\n"
             
         except Exception as e:
             err_msg = str(e)[:200]
@@ -1298,6 +1316,9 @@ async def generate_ai_response(req: AIRequest):
             token_param["max_tokens"] = 2048
             token_param["temperature"] = 0.7
         
+        import time as _time
+        _start_time = _time.time()
+        
         completion = client.chat.completions.create(
             model=model,
             messages=messages,
@@ -1306,9 +1327,18 @@ async def generate_ai_response(req: AIRequest):
         )
         
         full_response = ""
+        _ttft = 0
         for chunk in completion:
             if chunk.choices[0].delta.content:
+                if not full_response:  # First token
+                    _ttft = _time.time() - _start_time
                 full_response += chunk.choices[0].delta.content
+        
+        # Calculate per-response cost
+        input_text = "\n".join([m.get('content', '') if isinstance(m.get('content'), str) else str(m.get('content', '')) for m in messages])
+        _input_tokens = count_tokens(input_text)
+        _output_tokens = count_tokens(full_response)
+        _response_cost = calculate_cost(_input_tokens, _output_tokens, model)
         
         # Save to conversation history only if save_to_context is True
         # (skip for one-shot LeetCode problems, save for scenarios needing follow-up)
@@ -1323,7 +1353,7 @@ async def generate_ai_response(req: AIRequest):
             # Save to session folder if active
             if current_session_name:
                 try:
-                    save_conversation_to_session(user_msg, full_response, bool(req.screenshot), model)
+                    save_conversation_to_session(user_msg, full_response, bool(req.screenshot), model, response_time=_ttft, cost=_response_cost)
                 except Exception as save_err:
                     print(f"[SESSION SAVE ERROR] {save_err}")
             

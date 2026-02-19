@@ -52,6 +52,9 @@ function initializeStreamingAI() {
             // responseArea.innerText = ''; // Removed to keep "Generating..." visible
             let fullResponse = '';
             let usedModel = '';
+            let responseCost = 0;
+            let ttft = 0; // time to first token
+            let firstChunkReceived = false;
 
             // Read stream with proper SSE line buffering
             const reader = res.body.getReader();
@@ -77,6 +80,13 @@ function initializeStreamingAI() {
                             }
 
                             if (data.chunk) {
+                                if (!firstChunkReceived) {
+                                    firstChunkReceived = true;
+                                    ttft = (Date.now() - startTime) / 1000;
+                                    if (responseTimeEl) {
+                                        responseTimeEl.innerText = ttft.toFixed(1) + 's';
+                                    }
+                                }
                                 fullResponse += data.chunk;
                                 responseArea.innerText = fullResponse;
                                 responseArea.scrollTop = responseArea.scrollHeight;
@@ -84,9 +94,16 @@ function initializeStreamingAI() {
 
                             if (data.done) {
                                 console.log('[STREAM] Complete');
-                                if (responseTimeEl) {
-                                    const duration = (Date.now() - startTime) / 1000;
-                                    responseTimeEl.innerText = duration.toFixed(1) + 's';
+                                // Use backend TTFT if available (more accurate)
+                                if (data.ttft && data.ttft > 0) {
+                                    ttft = data.ttft;
+                                    if (responseTimeEl) {
+                                        responseTimeEl.innerText = ttft.toFixed(1) + 's';
+                                    }
+                                }
+                                // Capture per-response cost
+                                if (data.response_cost !== undefined) {
+                                    responseCost = data.response_cost;
                                 }
                                 // Update API cost display with color gradient
                                 if (data.usage && data.usage.total_cost !== undefined) {
@@ -147,7 +164,12 @@ function initializeStreamingAI() {
             const codeBlocks = [];
             const inlineCodeBlocks = [];
 
-            formattedResponse = formattedResponse.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+            // Normalize ALL line endings to \n (GPT-5/reasoning models may use \r\n or \r)
+            formattedResponse = formattedResponse.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+            // Match fenced code blocks: 3+ backticks, optional language, content, closing backticks
+            // Handles: ```python\n...\n```, ``` python \n...\n  ```, ````python\n...\n````
+            formattedResponse = formattedResponse.replace(/`{3,}\s*(\w+)?\s*\n([\s\S]*?)\n\s*`{3,}/g, (match, lang, code) => {
                 const language = lang || 'plaintext';
                 const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
@@ -195,6 +217,8 @@ function initializeStreamingAI() {
             if (convoArea) {
                 const pairDiv = document.createElement('div');
                 pairDiv.style.cssText = 'border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; padding: 8px; background: rgba(255,255,255,0.02);';
+                pairDiv.dataset.cost = responseCost || 0;
+                pairDiv.dataset.responseTime = ttft || 0;
 
                 // Input (transcript/question)
                 const inputText = transcript || '(screenshot analysis)';
@@ -207,7 +231,11 @@ function initializeStreamingAI() {
                 const cleanResponse = fullResponse.replace(/\n{3,}/g, '\n').replace(/\[Model Used:.*\]/, '').trim();
                 const rDiv = document.createElement('div');
                 rDiv.style.cssText = 'color: #ddd; font-size: 11px; line-height: 1.4; padding: 4px 8px; border-left: 2px solid rgba(100,255,150,0.4); border-radius: 2px; max-height: 80px; overflow-y: auto;';
-                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">AI' + (usedModel ? ' (' + usedModel + ')' : '') + '</strong><br>' + cleanResponse.substring(0, 300) + (cleanResponse.length > 300 ? '...' : '');
+                // Build AI label with model and response time
+                let aiLabel = 'AI';
+                if (usedModel) aiLabel += ' (' + usedModel + ')';
+                if (ttft) aiLabel += ' (' + ttft.toFixed(1) + 's)';
+                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong><br>' + cleanResponse.substring(0, 300) + (cleanResponse.length > 300 ? '...' : '');
                 pairDiv.appendChild(rDiv);
 
                 convoArea.appendChild(pairDiv);

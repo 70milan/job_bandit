@@ -462,16 +462,44 @@ function initSession() {
         convoBtn.onclick = () => {
             const convoArea = document.getElementById('conversation-area');
             const modalList = document.getElementById('conversation-modal-list');
+            const costFooter = document.getElementById('conversation-modal-cost');
+            const modalTitle = document.getElementById('conversation-modal-title');
             if (!modalList) return;
+
+            // Set title with session name
+            if (modalTitle) {
+                const divider = '<span style="color: rgba(255,255,255,0.2); margin: 0 8px;">|</span>';
+                modalTitle.innerHTML = currentSessionName
+                    ? 'Conversation ' + divider + ' <span style="color: rgba(255,255,255,0.6);">' + currentSessionName + '</span>'
+                    : 'Conversation So Far';
+            }
 
             // Copy entries from hidden data container into modal
             modalList.innerHTML = '';
+            let totalCost = 0;
             if (convoArea && convoArea.children.length > 0) {
                 Array.from(convoArea.children).forEach(child => {
                     modalList.appendChild(child.cloneNode(true));
+                    totalCost += parseFloat(child.dataset.cost || 0);
                 });
             } else {
                 modalList.innerHTML = '<div style="color: rgba(255,255,255,0.3); font-size: 12px; text-align: center; padding: 30px;">No conversation yet.</div>';
+            }
+
+            // Show cumulative API cost
+            if (costFooter) {
+                if (totalCost > 0) {
+                    let costText;
+                    if (totalCost < 1.00) {
+                        costText = (totalCost * 100).toFixed(2) + '¢';
+                    } else {
+                        costText = '$' + totalCost.toFixed(2);
+                    }
+                    costFooter.innerHTML = '<span style="color: #EEFF00;">Cumulative API Cost:</span> <span style="color: #FF6D00; font-weight: 600;">' + costText + '</span>';
+                    costFooter.style.display = 'block';
+                } else {
+                    costFooter.style.display = 'none';
+                }
             }
 
             if (convoModal) convoModal.style.display = 'flex';
@@ -516,7 +544,7 @@ function initSession() {
         licenseInfo.onclick = async () => {
             await customAlert(
                 `Get a license key for full 2-hour sessions.\n\n` +
-                `Email your Hardware ID to: mjulez70@gmail.com\n\n` +
+                `Email your Hardware ID to: <a href="mailto:mjulez70@gmail.com" style="color: rgba(100, 255, 150, 0.9);">mjulez70@gmail.com</a>\n\n` +
                 `Your Hardware ID (HWID) is found below the license key input field.\n\n` +
                 `One-time payment of $20 only.`
             );
@@ -614,7 +642,10 @@ window.openPastSession = async function (sessionName) {
                 if (entry.response) {
                     const rDiv = document.createElement('div');
                     rDiv.style.cssText = 'color: #eee; font-size: 12px; line-height: 1.5; padding: 6px 10px; background: rgba(100,255,150,0.03); border-left: 2px solid rgba(100,255,150,0.5); border-radius: 3px; max-height: 150px; overflow-y: auto;';
-                    rDiv.innerHTML = `<strong style="color: rgba(100,255,150,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">AI${entry.model ? ' (' + entry.model + ')' : ''}</strong><br>${entry.response}`;
+                    let aiLabel = 'AI';
+                    if (entry.model) aiLabel += ' (' + entry.model + ')';
+                    if (entry.response_time) aiLabel += ' (' + entry.response_time + 's)';
+                    rDiv.innerHTML = `<strong style="color: rgba(100,255,150,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">${aiLabel}</strong><br>${entry.response}`;
                     pairDiv.appendChild(rDiv);
                 }
 
@@ -696,6 +727,19 @@ window.openPastSession = async function (sessionName) {
                 const endBtnEl = document.getElementById('btn-session-end');
                 if (endBtnEl) endBtnEl.classList.remove('ended');
 
+                // Reset API cost display to $0 for new run
+                const apiCostEl = document.getElementById('api-cost');
+                if (apiCostEl) {
+                    apiCostEl.innerText = '$0.00';
+                    apiCostEl.style.color = 'rgba(120, 200, 180, 0.85)';
+                }
+
+
+
+                // Reset response time display
+                const responseTimeEl = document.getElementById('response-time');
+                if (responseTimeEl) responseTimeEl.innerText = '0.0s';
+
                 // Pre-populate Conversation So Far with past session history
                 const convoArea = document.getElementById('conversation-area');
                 if (convoArea) {
@@ -704,6 +748,8 @@ window.openPastSession = async function (sessionName) {
                         sessionData.history.forEach(entry => {
                             const pairDiv = document.createElement('div');
                             pairDiv.style.cssText = 'border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; padding: 8px; background: rgba(255,255,255,0.02);';
+                            pairDiv.dataset.cost = entry.cost || 0;
+                            pairDiv.dataset.responseTime = entry.response_time || 0;
 
                             if (entry.question) {
                                 const qDiv = document.createElement('div');
@@ -715,7 +761,10 @@ window.openPastSession = async function (sessionName) {
                             if (entry.response) {
                                 const rDiv = document.createElement('div');
                                 rDiv.style.cssText = 'color: #ddd; font-size: 11px; line-height: 1.4; padding: 4px 8px; border-left: 2px solid rgba(100,255,150,0.4); border-radius: 2px; max-height: 80px; overflow-y: auto;';
-                                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">AI' + (entry.model ? ' (' + entry.model + ')' : '') + '</strong><br>' + entry.response.substring(0, 300) + (entry.response.length > 300 ? '...' : '');
+                                let aiLabel = 'AI';
+                                if (entry.model) aiLabel += ' (' + entry.model + ')';
+                                if (entry.response_time) aiLabel += ' (' + entry.response_time + 's)';
+                                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong><br>' + entry.response.substring(0, 300) + (entry.response.length > 300 ? '...' : '');
                                 pairDiv.appendChild(rDiv);
                             }
 
@@ -955,6 +1004,16 @@ async function handleCreateSession() {
             // Reset end button state
             const endBtnEl = document.getElementById('btn-session-end');
             if (endBtnEl) endBtnEl.classList.remove('ended');
+
+            // Reset API cost display
+            const apiCostEl = document.getElementById('api-cost');
+            if (apiCostEl) {
+                apiCostEl.innerText = '$0.00';
+                apiCostEl.style.color = 'rgba(120, 200, 180, 0.85)';
+            }
+            // Reset response time display
+            const responseTimeEl = document.getElementById('response-time');
+            if (responseTimeEl) responseTimeEl.innerText = '0.0s';
         }, 1200);
 
     } catch (e) {
