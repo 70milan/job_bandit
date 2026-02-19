@@ -182,6 +182,12 @@ async function waitForBackend() {
             if (res.ok) {
                 backendReady = true;
                 console.log('[BACKEND] Backend is ready!');
+
+                // Refresh HWID display now that backend is ready
+                if (typeof updateHWIDDisplay === 'function') {
+                    updateHWIDDisplay();
+                }
+
                 if (pastSessionsBtn) {
                     pastSessionsBtn.innerHTML = 'Past Sessions';
                     pastSessionsBtn.style.opacity = '1';
@@ -1095,7 +1101,7 @@ async function endSession() {
 }
 
 // AUTO-DISPLAY HWID ON SETUP SCREEN
-(async function initHWIDDisplay() {
+async function updateHWIDDisplay() {
     try {
         const hwid = await getHardwareID();
         console.log('[DEBUG] Fetched HWID for display:', hwid);
@@ -1104,22 +1110,33 @@ async function endSession() {
         if (setupDisplay) {
             setupDisplay.style.display = 'block';
             setupDisplay.querySelector('span').textContent = hwid;
-            setupDisplay.title = 'Click to Copy';
-            setupDisplay.style.cursor = 'pointer';
-            setupDisplay.onclick = () => {
-                navigator.clipboard.writeText(hwid);
-                const span = setupDisplay.querySelector('span');
-                span.textContent = 'COPIED';
-                setTimeout(() => { span.textContent = hwid; }, 1000);
-            };
-            console.log('[DEBUG] HWID display populated on setup screen');
+
+            if (hwid === "Backend Offline") {
+                setupDisplay.querySelector('span').style.color = "rgba(255, 100, 100, 0.4)";
+                setupDisplay.style.cursor = 'default';
+                setupDisplay.onclick = null;
+            } else {
+                setupDisplay.querySelector('span').style.color = "rgba(100, 255, 150, 0.4)";
+                setupDisplay.title = 'Click to Copy';
+                setupDisplay.style.cursor = 'pointer';
+                setupDisplay.onclick = () => {
+                    navigator.clipboard.writeText(hwid);
+                    const span = setupDisplay.querySelector('span');
+                    span.textContent = 'COPIED';
+                    setTimeout(() => { span.textContent = hwid; }, 1000);
+                };
+            }
+            console.log('[DEBUG] HWID display updated on setup screen');
         } else {
             console.warn('[DEBUG] hwid-setup-display element not found');
         }
     } catch (e) {
         console.error("Error displaying HWID on setup screen:", e);
     }
-})();
+}
+
+// Initial call
+updateHWIDDisplay();
 
 // Inject API cost and Model Selector elements into status bar dynamically
 (function () {
