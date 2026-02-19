@@ -461,7 +461,42 @@ def ensure_keys_exist():
         print(f"[ERROR] Failed to generate keys: {e}")
 
 # Call on import/startup
-ensure_keys_exist()
+def initialize_keys():
+    """Ensure keys exist and enforce bundled public key usage."""
+    # 1. If running as frozen executable, overwrite public key from bundle
+    if getattr(sys, 'frozen', False):
+        try:
+            # PyInstaller extracts to sys._MEIPASS
+            bundle_dir = sys._MEIPASS
+            bundled_key_path = os.path.join(bundle_dir, PUBLIC_KEY_FILE)
+            
+            if os.path.exists(bundled_key_path):
+                # Copy bundled key to BASE_DIR (overwrite existing)
+                dest_path = BASE_DIR / PUBLIC_KEY_FILE
+                import shutil
+                shutil.copy2(bundled_key_path, dest_path)
+                print(f"[STARTUP] Enforced bundled public key: {dest_path}")
+        except Exception as e:
+            print(f"[STARTUP ERROR] Failed to copy bundled key: {e}")
+
+    # 2. Generate keys if still missing (e.g. dev mode or missing bundle)
+    ensure_keys_exist()
+
+initialize_keys()
+
+import hashlib
+@app.get('/debug/key-info')
+async def debug_key_info():
+    """Return fingerprint of the current public key."""
+    try:
+        if os.path.exists(PUBLIC_KEY_FILE):
+            with open(PUBLIC_KEY_FILE, "rb") as f:
+                content = f.read()
+                fingerprint = hashlib.sha256(content).hexdigest()[:16]
+                return {"status": "ok", "fingerprint": fingerprint, "path": str(Path(PUBLIC_KEY_FILE).resolve())}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+    return {"status": "error", "error": "Key not found"}
 
 def load_public_key():
     """Load public key from file."""

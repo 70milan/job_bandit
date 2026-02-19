@@ -1,6 +1,6 @@
 {
   "name": "windows-command-controller",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Windows Command Controller",
   "author": "70milan",
   "main": "main.js",
