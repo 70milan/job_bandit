@@ -546,6 +546,38 @@
       </div>
     </div>
   </div>
+  <!-- Session History Modal -->
+  <div id="session-history-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.9); z-index: 10002; align-items: center; justify-content: center;">
+    <div
+      style="background: rgba(30, 30, 30, 0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 20px; max-width: 600px; width: 95%; max-height: 80vh; display: flex; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <span id="session-history-title"
+          style="color: rgba(255,255,255,0.6); font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;">Session
+          History</span>
+        <button id="close-session-history" type="button"
+          style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 18px; cursor: pointer; padding: 4px 6px; line-height: 1; border-radius: 50%; transition: all 0.2s ease;"
+          onmouseover="this.style.color='#ff5555'; this.style.background='rgba(255,255,255,0.05)'; this.style.transform='scale(1.1)';"
+          onmouseout="this.style.color='rgba(255,255,255,0.5)'; this.style.background='none'; this.style.transform='scale(1)';">&times;</button>
+      </div>
+      <div id="session-history-list"
+        style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px;">
+        <div style="color: rgba(255,255,255,0.4); font-size: 12px; text-align: center; padding: 20px;">No history</div>
+      </div>
+      <div
+        style="display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
+        <button id="btn-resume-session" type="button"
+          style="flex: 1; padding: 10px 0; background: rgba(100, 255, 150, 0.08); border: 1px solid rgba(100, 255, 150, 0.2); border-radius: 4px; color: rgba(100, 255, 150, 0.7); font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; transition: all 0.2s;"
+          onmouseover="this.style.color='rgba(100,255,150,0.95)'; this.style.borderColor='rgba(100,255,150,0.4)'; this.style.background='rgba(100,255,150,0.12)';"
+          onmouseout="this.style.color='rgba(100,255,150,0.7)'; this.style.borderColor='rgba(100,255,150,0.2)'; this.style.background='rgba(100,255,150,0.08)';">Resume
+          Session</button>
+        <button id="btn-close-history" type="button"
+          style="flex: 1; padding: 10px 0; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: rgba(255,255,255,0.5); font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; transition: all 0.2s;"
+          onmouseover="this.style.color='rgba(255,255,255,0.7)'; this.style.borderColor='rgba(255,255,255,0.2)';"
+          onmouseout="this.style.color='rgba(255,255,255,0.5)'; this.style.borderColor='rgba(255,255,255,0.1)';">Close</button>
+      </div>
+    </div>
+  </div>
   <!-- Guide Modal -->
   <div id="guide-modal"
     style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 10, 0.9); z-index: 10001; align-items: center; justify-content: center;">

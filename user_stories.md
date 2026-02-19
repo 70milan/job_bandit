@@ -14,6 +14,7 @@ Making the application's core workflow reliable and flexible.
 
 - **User Story 2.1:** As a user, I want to create new sessions without errors and open past sessions to continue exactly where I left off.
 - **User Story 2.2:** As a user, I want the ability to customize my "Target Role" so the AI doesn't assume I am always a "Data Engineer".
+- **User Story 2.3:** As a user, when I open a "Past Session", I want to load the *existing* conversation history to review or continue it, rather than creating a new cloned session.
 
 ## Feature 3: Premium UI/UX Design
 Creating a professional, highly interactive, and responsive interface.

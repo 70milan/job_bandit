@@ -811,13 +811,23 @@ async def load_session(session_name: str):
         
         data = json.loads(session_file.read_text(encoding='utf-8'))
         
+        # Load conversation history
+        conv_file = session_dir / 'conversation.json'
+        history = []
+        if conv_file.exists():
+            try:
+                history = json.loads(conv_file.read_text(encoding='utf-8'))
+            except:
+                history = []
+
         return {
             "status": "ok",
             "session_name": session_name,
             "resume_text": data.get('resume_text', ''),
             "job_description": data.get('job_description', ''),
             "created_at": data.get('created_at', ''),
-            "text_model": data.get('text_model', DEFAULT_TEXT_MODEL)
+            "text_model": data.get('text_model', DEFAULT_TEXT_MODEL),
+            "history": history
         }
     except Exception as e:
         return {"status": "error", "error": str(e)}

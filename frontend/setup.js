@@ -384,7 +384,9 @@ function initSession() {
                 const data = await res.json();
 
                 if (data.sessions && data.sessions.length > 0) {
-                    listContainer.innerHTML = data.sessions.map(session => `
+                    // Show most recent sessions first
+                    const sorted = data.sessions.slice().reverse();
+                    listContainer.innerHTML = sorted.map(session => `
                         <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 12px; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;" 
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.03)'">
@@ -485,7 +487,7 @@ function initSession() {
     }
 }
 
-// Load and start a past session
+// Load and show history for a past session
 window.openPastSession = async function (sessionName) {
     const pastSessionsModal = document.getElementById('past-sessions-modal');
     const apiKeyInput = document.getElementById('setup-apikey');
@@ -518,26 +520,22 @@ window.openPastSession = async function (sessionName) {
             return;
         }
 
-        // Check license - use saved license if available
+        // Check license
         const savedLicense = localStorage.getItem('valid_license_key');
         if (savedLicense) {
             isLicensed = true;
-            console.log('[DEBUG] Using saved license for past session');
         } else {
             const licenseInput = document.getElementById('setup-license');
             const licenseKey = licenseInput ? licenseInput.value.trim() : '';
             const licenseStatus = await validateLicense(licenseKey);
             isLicensed = (licenseStatus === 'valid');
         }
-
         SESSION_DURATION_MS = isLicensed ? FULL_SESSION_DURATION_MS : DEMO_SESSION_DURATION_MS;
 
-        // Load session data
+        // Load session data from backend
         status.innerText = 'Loading session...';
         const loadRes = await fetch(`http://127.0.0.1:5050/session/load/${encodeURIComponent(sessionName)}`);
         const sessionData = await loadRes.json();
-
-
 
         if (sessionData.status !== 'ok') {
             status.innerText = sessionData.error || 'Failed to load session';
@@ -545,86 +543,123 @@ window.openPastSession = async function (sessionName) {
             return;
         }
 
-        // Generate new session name with timestamp
-        const now = new Date();
-        const timestamp = now.toISOString().slice(0, 16).replace('T', '_').replace(':', '');
-        const newSessionName = `${sessionName}_${timestamp}`;
-
-        status.innerText = 'Creating session...';
-        const createRes = await fetch('http://127.0.0.1:5050/session/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session_name: newSessionName })
-        });
-
-        // Smart Job Description handling - user input takes precedence
-        const jdInput = document.getElementById('setup-jobdesc');
-        const userJD = jdInput ? jdInput.value.trim() : '';
-        const finalJD = userJD || sessionData.job_description;
-
-        // Save session data
-        await fetch('http://127.0.0.1:5050/session/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                session_name: newSessionName,
-                openai_api_key: apiKey,
-                job_description: finalJD,
-                resume_text: sessionData.resume_text,
-                created_at: now.toISOString(),
-                text_model: window.selectedModel || 'gpt-3.5-turbo'
-            })
-        });
-
-        await fetch('http://127.0.0.1:5050/conversation/clear', { method: 'POST' });
-
-        currentSessionName = newSessionName;
-        sessionCreated = true;
-
-        // Restore model preference from past session
-        if (sessionData.text_model) {
-            window.selectedModel = sessionData.text_model;
-            const modelBtn = document.getElementById('model-selector-btn');
-            if (modelBtn) {
-                // Find model name from dropdown options
-                const modelOpt = document.querySelector(`[data-model="${sessionData.text_model}"]`);
-                if (modelOpt) {
-                    modelBtn.textContent = modelOpt.querySelector('div').textContent;
-                } else {
-                    modelBtn.textContent = sessionData.text_model.replace('gpt-', 'GPT-').replace('-turbo', '');
-                }
-            }
-            console.log('[SESSION] Restored model preference:', sessionData.text_model);
-        }
-
-        // Update license badge
-        const badge = document.getElementById('license-status-badge');
-        if (badge) {
-            if (isLicensed) {
-                badge.textContent = 'LICENSED';
-                badge.style.color = 'rgba(100, 255, 150, 0.8)';
-            } else {
-                badge.textContent = 'DEMO (5 MIN)';
-                badge.style.color = 'rgba(240, 142, 30, 0.88)';
-            }
-        }
-
-        // Update timer display WITHOUT starting
-        const timerText = document.getElementById('session-timer-text');
-        if (timerText) {
-            timerText.innerText = isLicensed ? '2:00:00' : '0:05:00';
-        }
-
-        const statusText = document.getElementById('status-text');
-        if (statusText) {
-            statusText.innerText = 'Session Ready - Click Start';
-        }
-
-        const overlay = document.getElementById('setup-overlay');
-        if (overlay) overlay.style.display = 'none';
-
         status.innerText = '';
-        console.log(`[SESSION] Loaded past session: ${sessionName} -> New session: ${newSessionName}`);
+
+        // === SHOW HISTORY MODAL ===
+        const historyModal = document.getElementById('session-history-modal');
+        const historyList = document.getElementById('session-history-list');
+        const historyTitle = document.getElementById('session-history-title');
+
+        if (historyTitle) historyTitle.textContent = `History — ${sessionName}`;
+        if (historyList) historyList.innerHTML = '';
+
+        // Populate history entries
+        if (sessionData.history && Array.isArray(sessionData.history) && sessionData.history.length > 0) {
+            sessionData.history.forEach((entry, idx) => {
+                const pairDiv = document.createElement('div');
+                pairDiv.style.cssText = 'border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 12px; background: rgba(255,255,255,0.02);';
+
+                // Entry number
+                const numLabel = document.createElement('div');
+                numLabel.style.cssText = 'color: rgba(255,255,255,0.25); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;';
+                numLabel.textContent = `Exchange ${idx + 1}` + (entry.timestamp ? ` — ${new Date(entry.timestamp).toLocaleTimeString()}` : '');
+                pairDiv.appendChild(numLabel);
+
+                // User question
+                if (entry.question) {
+                    const qDiv = document.createElement('div');
+                    qDiv.style.cssText = 'color: #ccc; font-size: 12px; line-height: 1.5; margin-bottom: 8px; padding: 6px 10px; background: rgba(255,255,255,0.03); border-left: 2px solid #888; border-radius: 3px;';
+                    qDiv.innerHTML = `<strong style="color: rgba(255,255,255,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">You</strong><br>${entry.question}`;
+                    pairDiv.appendChild(qDiv);
+                }
+
+                // AI response
+                if (entry.response) {
+                    const rDiv = document.createElement('div');
+                    rDiv.style.cssText = 'color: #eee; font-size: 12px; line-height: 1.5; padding: 6px 10px; background: rgba(100,255,150,0.03); border-left: 2px solid rgba(100,255,150,0.5); border-radius: 3px; max-height: 150px; overflow-y: auto;';
+                    rDiv.innerHTML = `<strong style="color: rgba(100,255,150,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">AI</strong><br>${entry.response}`;
+                    pairDiv.appendChild(rDiv);
+                }
+
+                historyList.appendChild(pairDiv);
+            });
+        } else {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.style.cssText = 'color: rgba(255,255,255,0.3); font-size: 12px; text-align: center; padding: 30px;';
+            emptyDiv.textContent = 'No conversation history for this session.';
+            historyList.appendChild(emptyDiv);
+        }
+
+        // Show the modal
+        if (historyModal) historyModal.style.display = 'flex';
+
+        // === WIRE UP BUTTONS ===
+        const resumeBtn = document.getElementById('btn-resume-session');
+        const closeHistoryBtn = document.getElementById('btn-close-history');
+        const closeXBtn = document.getElementById('close-session-history');
+
+        // Close handler (shared)
+        const closeModal = () => {
+            if (historyModal) historyModal.style.display = 'none';
+        };
+
+        if (closeHistoryBtn) closeHistoryBtn.onclick = closeModal;
+        if (closeXBtn) closeXBtn.onclick = closeModal;
+
+        // Resume handler
+        if (resumeBtn) {
+            resumeBtn.onclick = async () => {
+                closeModal();
+
+                // Set session as active
+                currentSessionName = sessionName;
+                sessionCreated = true;
+
+                // Restore model preference
+                if (sessionData.text_model) {
+                    window.selectedModel = sessionData.text_model;
+                    const modelBtn = document.getElementById('model-selector-btn');
+                    if (modelBtn) {
+                        const modelOpt = document.querySelector(`[data-model="${sessionData.text_model}"]`);
+                        if (modelOpt) {
+                            modelBtn.textContent = modelOpt.querySelector('div').textContent;
+                        } else {
+                            modelBtn.textContent = sessionData.text_model.replace('gpt-', 'GPT-').replace('-turbo', '');
+                        }
+                    }
+                    console.log('[SESSION] Restored model:', sessionData.text_model);
+                }
+
+                // Update license badge
+                const badge = document.getElementById('license-status-badge');
+                if (badge) {
+                    if (isLicensed) {
+                        badge.textContent = 'LICENSED';
+                        badge.style.color = 'rgba(100, 255, 150, 0.8)';
+                    } else {
+                        badge.textContent = 'Demo';
+                        badge.style.color = 'rgba(255, 200, 100, 0.7)';
+                    }
+                }
+
+                // Update timer
+                const timerText = document.getElementById('session-timer-text');
+                if (timerText) {
+                    timerText.innerText = isLicensed ? '2:00:00' : '0:05:00';
+                }
+
+                const statusText = document.getElementById('status-text');
+                if (statusText) {
+                    statusText.innerText = 'Session Ready - Click Start';
+                }
+
+                // Hide setup overlay
+                const overlay = document.getElementById('setup-overlay');
+                if (overlay) overlay.style.display = 'none';
+
+                console.log(`[SESSION] Resumed past session: ${sessionName}`);
+            };
+        }
 
     } catch (e) {
         console.error('Error loading past session:', e);
@@ -1038,9 +1073,13 @@ async function endSession() {
             resumeFilename.style.color = 'rgba(255, 255, 255, 0.4)';
         }
 
-        // Reset other inputs
+        // Reset other inputs (keep API key from localStorage)
         if (sessionNameInput) sessionNameInput.value = '';
-        if (apiKeyInput) apiKeyInput.value = '';
+        // Preserve API key - reload from localStorage instead of clearing
+        if (apiKeyInput) {
+            const savedKey = localStorage.getItem('openai_api_key');
+            apiKeyInput.value = savedKey || '';
+        }
         if (jdInput) jdInput.value = '';
         if (status) {
             status.innerText = '';
@@ -1097,6 +1136,22 @@ async function endSession() {
         // SHOW THE SETUP OVERLAY - this is what was missing!
         if (overlay) {
             overlay.style.display = 'flex';
+        }
+
+        // Restore license badge if saved license exists
+        const savedLicenseKey = localStorage.getItem('valid_license_key');
+        const licenseBadge = document.getElementById('license-status-badge');
+        if (savedLicenseKey && licenseBadge) {
+            licenseBadge.textContent = 'Licensed';
+            licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
+            // Also restore the license input state
+            const licInput = document.getElementById('setup-license');
+            if (licInput) {
+                licInput.value = 'License Active';
+                licInput.disabled = true;
+                licInput.style.opacity = '0.5';
+                licInput.style.cursor = 'not-allowed';
+            }
         }
     }
 }
