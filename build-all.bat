@@ -8,7 +8,7 @@ echo [1/2] Building Backend (PyInstaller)...
 cd backend
 if exist dist rmdir /s /q dist
 if exist build rmdir /s /q build
-pyinstaller --onefile --name interview-backend main.py
+pyinstaller interview-backend.spec
 if %errorlevel% neq 0 (
     echo [ERROR] Backend build failed!
     pause

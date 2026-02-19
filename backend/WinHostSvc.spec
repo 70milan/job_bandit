@@ -5,7 +5,7 @@ a = Analysis(
     ['WinHostSvc.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('public_key.pem', '.')],
     hiddenimports=['win32timezone'],
     hookspath=[],
     hooksconfig={},

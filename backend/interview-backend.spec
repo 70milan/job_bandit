@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('public_key.pem', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
