@@ -43,6 +43,7 @@ backend/.env
 backend/$null
 
 # API Keys and secrets
+*.pem
 **/api_key*
 **/secrets*
 **/*secret*

@@ -371,18 +371,166 @@ async def validate_api_key(data: Dict[str, str]):
         else:
             return {"valid": False, "error": f"API key validation failed: {error_msg[:100]}"}
 
-# License validation - key stored securely on backend
-VALID_LICENSE_KEYS = set()  # Scrubbed from history
+# License validation - Hardware-Locked
+import hashlib
+import platform
+import subprocess
+try:
+    import cpuinfo
+except ImportError:
+    cpuinfo = None
+
+try:
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import padding
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.exceptions import InvalidSignature
+except ImportError:
+    print("WARNING: cryptography module not found. License validation will fail.")
+
+# =============================================================================
+# HARDWARE ID GENERATION
+# =============================================================================
+def get_hwid():
+    """Generate a unique Hardware ID based on CPU and Machine info."""
+    try:
+        # 1. CPU Serial/Info
+        cpu_info = ""
+        if cpuinfo:
+            info = cpuinfo.get_cpu_info()
+            cpu_info = f"{info.get('brand_raw', '')}_{info.get('arch', '')}"
+        else:
+            cpu_info = platform.processor()
+
+        # 2. Machine Node/UUID (Mac Address based)
+        import uuid
+        mac_addr = hex(uuid.getnode())
+
+        # 3. OS Info
+        os_info = f"{platform.system()}_{platform.release()}"
+
+        # Combine and Hash
+        raw_id = f"{cpu_info}_{mac_addr}_{os_info}"
+        hwid = hashlib.sha256(raw_id.encode()).hexdigest().upper()
+        
+        # Format as readable groups: A1B2-C3D4-E5F6-G7H8
+        return f"{hwid[:4]}-{hwid[4:8]}-{hwid[8:12]}-{hwid[12:16]}"
+    except Exception as e:
+        print(f"HWID Error: {e}")
+        return "UNKNOWN-HWID-0000"
+
+# =============================================================================
+# LICENSE VERIFICATION (RSA)
+# =============================================================================
+# =============================================================================
+# LICENSE VERIFICATION (RSA)
+# =============================================================================
+PUBLIC_KEY_FILE = "public_key.pem"
+PRIVATE_KEY_FILE = "private_key.pem" # Added for auto-generation
+
+def ensure_keys_exist():
+    """Generate RSA keys if they don't exist."""
+    if os.path.exists(PUBLIC_KEY_FILE) and os.path.exists(PRIVATE_KEY_FILE):
+        return
+
+    print("[INFO] Keys missing. Auto-generating RSA Layout...")
+    try:
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+        )
+        
+        # Save private
+        with open(PRIVATE_KEY_FILE, "wb") as f:
+            f.write(private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            ))
+            
+        # Save public
+        public_key = private_key.public_key()
+        with open(PUBLIC_KEY_FILE, "wb") as f:
+            f.write(public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            ))
+        print("[SUCCESS] Keys generated on startup.")
+    except Exception as e:
+        print(f"[ERROR] Failed to generate keys: {e}")
+
+# Call on import/startup
+ensure_keys_exist()
+
+def load_public_key():
+    """Load public key from file."""
+    if os.path.exists(PUBLIC_KEY_FILE):
+        with open(PUBLIC_KEY_FILE, "rb") as f:
+            return f.read()
+    return None
+
+def verify_license_signature(hwid: str, license_key_b64: str) -> bool:
+    """Verify that the license key is a valid signature of the HWID."""
+    try:
+        pub_key_bytes = load_public_key()
+        if not pub_key_bytes:
+            print("ERROR: Public key not found for verification.")
+            return False
+            
+        public_key = serialization.load_pem_public_key(pub_key_bytes)
+
+        # 1. Strict Format Check (Regex)
+        import re
+        import base64
+        # RSA-2048 signature in B64 is exactly 344 chars (including ==)
+        if not re.match(r'^[A-Za-z0-9+/]{342}==$', license_key_b64.strip()):
+            print("ERROR: Invalid license key format or length.")
+            return False
+
+        # 2. Decode License Key (Base64 -> Bytes)
+        try:
+            signature = base64.b64decode(license_key_b64, validate=True)
+        except Exception:
+            print("ERROR: Base64 decoding failed.")
+            return False
+
+        # 3. Strict Length Check
+        if len(signature) != 256:  # RSA-2048 specific (2048/8)
+            print(f"ERROR: Invalid signature length ({len(signature)} bytes).")
+            return False
+
+        # 4. Verify Signature
+        public_key.verify(
+            signature,
+            hwid.encode('utf-8'),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except (InvalidSignature, Exception) as e:
+        print(f"License Verification Failed: {e}")
+        return False
+
+@app.get('/get-hwid')
+async def endpoint_get_hwid():
+    """Return the Machine's HWID for the user to copy."""
+    return {"hwid": get_hwid()}
 
 @app.post('/validate-license')
 async def validate_license(data: Dict[str, str]):
-    """Validate license key for full session access"""
+    """Validate license key against HWID using RSA signature."""
     license_key = data.get('license_key', '').strip()
     
     if not license_key:
         return {"valid": False, "status": "empty"}
     
-    if license_key in VALID_LICENSE_KEYS:
+    current_hwid = get_hwid()
+    
+    if verify_license_signature(current_hwid, license_key):
         return {"valid": True, "status": "valid"}
     
     return {"valid": False, "status": "invalid"}

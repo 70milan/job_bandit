@@ -11,3 +11,7 @@ taskkill /F /IM JobAndit.exe /IM interview-backend.exe 2>$null
 
 
 pyinstaller --onefile --name interview-backend main.py
+
+Unpersist license key
+open console control shift I
+localStorage.removeItem('valid_license_key');

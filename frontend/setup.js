@@ -12,19 +12,7 @@ let isLicensed = false; // Track license status
 let sessionStartTimestamp = null; // Track when session started for duration calculation
 let backendReady = false; // Track if backend has finished starting
 
-// License validation (obfuscated)
-const VALID_LICENSE_HASH = 'a3f2b8c1d4e5'; // Simple hash of valid key
-function hashLicense(key) {
-    // Simple hash for basic obfuscation
-    if (!key) return '';
-    let hash = 0;
-    for (let i = 0; i < key.length; i++) {
-        hash = ((hash << 5) - hash) + key.charCodeAt(i);
-        hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16).substring(0, 12);
-}
-
+// License validation (Hardware-Locked)
 async function validateLicense(key) {
     if (!key || key.trim() === '') return 'empty';
 
@@ -57,35 +45,60 @@ function showCustomModal(message, isConfirm = false) {
         const okBtn = document.getElementById('custom-modal-ok');
         const cancelBtn = document.getElementById('custom-modal-cancel');
 
+        // Allow HTML in message for HWID display
         msgEl.innerHTML = message.replace(/\n/g, '<br>');
         cancelBtn.style.display = isConfirm ? 'block' : 'none';
         modal.style.display = 'flex';
 
         const handleOk = () => {
             modal.style.display = 'none';
-            okBtn.removeEventListener('click', handleOk);
-            cancelBtn.removeEventListener('click', handleCancel);
+            cleanup();
             resolve(true);
         };
 
         const handleCancel = () => {
             modal.style.display = 'none';
-            okBtn.removeEventListener('click', handleOk);
-            cancelBtn.removeEventListener('click', handleCancel);
+            cleanup();
             resolve(false);
         };
 
+        const cleanup = () => {
+            okBtn.removeEventListener('click', handleOk);
+            cancelBtn.removeEventListener('click', handleCancel);
+        }
+
         okBtn.addEventListener('click', handleOk);
         cancelBtn.addEventListener('click', handleCancel);
+
+        // Focus OK button for keyboard navigation
+        okBtn.focus();
     });
 }
 
 window.customAlert = (msg) => showCustomModal(msg, false);
 window.customConfirm = (msg) => showCustomModal(msg, true);
 
+// Get HWID helper
+async function getHardwareID() {
+    try {
+        const res = await fetch('http://127.0.0.1:5050/get-hwid');
+        const data = await res.json();
+        return data.hwid || 'Unknown';
+    } catch (e) {
+        console.error("Failed to fetch HWID:", e);
+        return "Backend Offline";
+    }
+}
+
 // License prompt after demo expires
 async function showLicensePrompt() {
-    const result = await customConfirm('Demo session expired (5 min).\n\nEnter a license key for full 2-hour sessions.\n\nClick OK to enter license, or Cancel to return to setup.');
+    const hwid = await getHardwareID();
+    const result = await customConfirm(
+        `Demo session expired (5 min).\n\n` +
+        `Your Hardware ID: <strong style="color: #64ff96; user-select: all;">${hwid}</strong>\n\n` +
+        `Email this ID to the owner to get your license key.\n\n` +
+        `Click OK to enter license, or Cancel to return to setup.`
+    );
 
     if (result) {
         // Show setup overlay again so user can enter license
@@ -114,6 +127,7 @@ async function showLicensePrompt() {
         window.isSessionActive = false;
     }
 }
+
 
 function showSessionError() {
     const popup = document.getElementById('session-error-popup');
@@ -270,24 +284,36 @@ function initSession() {
 
 
 
-    // Check for saved valid license - grey out and disable if already validated
+    // Check for saved valid license - verify it's still valid with current backend/HWID
     const licenseInput = document.getElementById('setup-license');
     const savedLicense = localStorage.getItem('valid_license_key');
     const licenseBadge = document.getElementById('license-status-badge');
 
-    if (savedLicense && licenseInput) {
-        // License already validated - show as disabled/greyed out
-        licenseInput.value = 'License Active';
-        licenseInput.disabled = true;
-        licenseInput.style.opacity = '0.5';
-        licenseInput.style.cursor = 'not-allowed';
-        console.log('[DEBUG] Valid license found in localStorage - field disabled');
-
-        // Show Licensed badge
-        if (licenseBadge) {
-            licenseBadge.textContent = 'Licensed';
-            licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
-        }
+    if (savedLicense) {
+        (async () => {
+            const status = await validateLicense(savedLicense);
+            if (status === 'valid') {
+                isLicensed = true;
+                if (licenseInput) {
+                    licenseInput.value = 'License Active';
+                    licenseInput.disabled = true;
+                    licenseInput.style.opacity = '0.5';
+                    licenseInput.style.cursor = 'not-allowed';
+                }
+                if (licenseBadge) {
+                    licenseBadge.textContent = 'Licensed';
+                    licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
+                }
+                console.log('[DEBUG] Valid license verified on startup');
+            } else {
+                console.log('[DEBUG] Stale or invalid license found - clearing');
+                localStorage.removeItem('valid_license_key');
+                if (licenseBadge) {
+                    licenseBadge.textContent = 'Demo';
+                    licenseBadge.style.color = 'rgba(255, 200, 100, 0.7)';
+                }
+            }
+        })();
     } else {
         // Show Unlicensed badge
         if (licenseBadge) {
@@ -442,8 +468,13 @@ function initSession() {
     // License info click handler
     const licenseInfo = document.getElementById('license-info');
     if (licenseInfo) {
-        licenseInfo.onclick = () => {
-            customAlert('Get a license key for full 2-hour sessions.\n\nOne-time payment of $1 only.\n\nContact: mjulez70@gmail.com');
+        licenseInfo.onclick = async () => {
+            await customAlert(
+                `Get a license key for full 2-hour sessions.\n\n` +
+                `Email your Hardware ID to: mjulez70@gmail.com\n\n` +
+                `Your Hardware ID (HWID) is found below the license key input field.\n\n` +
+                `One-time payment of $20 only.`
+            );
         };
     }
 }
@@ -568,7 +599,7 @@ window.openPastSession = async function (sessionName) {
                 badge.style.color = 'rgba(100, 255, 150, 0.8)';
             } else {
                 badge.textContent = 'DEMO (5 MIN)';
-                badge.style.color = 'rgba(255, 200, 100, 0.8)';
+                badge.style.color = 'rgba(240, 142, 30, 0.88)';
             }
         }
 
@@ -650,7 +681,7 @@ async function handleCreateSession() {
     }
 
     if (!sessionName) {
-        showValidationError('Please enter a session name');
+        showValidationError('Session name is required');
         return;
     }
 
@@ -658,18 +689,18 @@ async function handleCreateSession() {
     const sanitizedSessionName = sessionName.replace(/[<>:"/\\|?*]/g, '_');
 
     if (!fileInput.files || fileInput.files.length === 0) {
-        showValidationError('You need to attach a resume to proceed');
+        showValidationError('Resume is required');
         return;
     }
 
     const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
     if (!apiKey) {
-        showValidationError('Please enter your OpenAI API key');
+        showValidationError('API key is required');
         return;
     }
 
     if (!jdInput.value.trim()) {
-        showValidationError('Please enter a Job Description');
+        showValidationError('Job Description is required');
         return;
     }
 
@@ -716,9 +747,9 @@ async function handleCreateSession() {
             // Demo mode - no license provided
             isLicensed = false;
             SESSION_DURATION_MS = DEMO_SESSION_DURATION_MS;
-            console.log('Demo mode: 5-minute session');
-            status.innerText = "Demo mode: 5-minute session";
-            status.style.color = "rgba(255, 200, 100, 0.9)";
+            console.log('Demo: 5-minute session');
+            status.innerText = "Demo: 5-minute session";
+            status.style.color = "rgba(228, 147, 61, 0.9)";
         }
     }
 
@@ -845,7 +876,7 @@ function startSessionTimer() {
     startBtn.classList.add('active');
     stopBtn.classList.remove('paused');
     if (endBtn) endBtn.classList.remove('ended');
-    statusText.innerText = isLicensed ? 'Session Running' : 'Demo Mode (5 min)';
+    statusText.innerText = isLicensed ? 'Session Running' : 'Demo (5 mins)';
 
     timerInterval = setInterval(() => {
         const remaining = sessionEndTime - Date.now();
@@ -1063,6 +1094,33 @@ async function endSession() {
     }
 }
 
+// AUTO-DISPLAY HWID ON SETUP SCREEN
+(async function initHWIDDisplay() {
+    try {
+        const hwid = await getHardwareID();
+        console.log('[DEBUG] Fetched HWID for display:', hwid);
+
+        const setupDisplay = document.getElementById('hwid-setup-display');
+        if (setupDisplay) {
+            setupDisplay.style.display = 'block';
+            setupDisplay.querySelector('span').textContent = hwid;
+            setupDisplay.title = 'Click to Copy';
+            setupDisplay.style.cursor = 'pointer';
+            setupDisplay.onclick = () => {
+                navigator.clipboard.writeText(hwid);
+                const span = setupDisplay.querySelector('span');
+                span.textContent = 'COPIED';
+                setTimeout(() => { span.textContent = hwid; }, 1000);
+            };
+            console.log('[DEBUG] HWID display populated on setup screen');
+        } else {
+            console.warn('[DEBUG] hwid-setup-display element not found');
+        }
+    } catch (e) {
+        console.error("Error displaying HWID on setup screen:", e);
+    }
+})();
+
 // Inject API cost and Model Selector elements into status bar dynamically
 (function () {
     const statusBar = document.getElementById('status-bar');
@@ -1072,6 +1130,7 @@ async function endSession() {
             // Model Selector, Time, Cost (Grouped Left-Aligned)
             const middleDiv = document.createElement('div');
             // flex margin-right: auto serves to push the rest to the right
+            middleDiv.id = "status-bar-middle";
             middleDiv.style.cssText = 'display: flex; align-items: center; gap: 15px; margin-left: 10px; margin-right: auto; z-index: 10; font-size: 10px;';
             middleDiv.innerHTML = `
                 <!-- Model -->
@@ -1099,27 +1158,25 @@ async function endSession() {
             `;
             // Ensure status bar is relative for absolute positioning of children
             if (getComputedStyle(statusBar).position === 'static') {
-                statusBar.style.position = 'relative';
+                statusBar.insertBefore(middleDiv, statusBar.children[1]); // Insert as 2nd child (between left and right)
             }
-            statusBar.insertBefore(middleDiv, statusBar.children[1]); // Insert as 2nd child (between left and right)
         }
-    }
 
-    // Initialize model selector
-    window.selectedModel = 'gpt-4o'; // Default to GPT-4o
+        // Initialize model selector
+        window.selectedModel = 'gpt-4o'; // Default to GPT-4o
 
-    const modelBtn = document.getElementById('model-selector-btn');
-    const modelDropdown = document.getElementById('model-dropdown');
+        const modelBtn = document.getElementById('model-selector-btn');
+        const modelDropdown = document.getElementById('model-dropdown');
 
-    if (modelBtn && modelDropdown) {
-        // Fetch models from backend with retry (backend may still be starting in built exe)
-        function fetchModelsWithRetry(attempts, delay) {
-            fetch('http://127.0.0.1:5050/models')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.models) {
-                        modelDropdown.innerHTML = data.models.map(m => {
-                            return `
+        if (modelBtn && modelDropdown) {
+            // Fetch models from backend with retry (backend may still be starting in built exe)
+            function fetchModelsWithRetry(attempts, delay) {
+                fetch('http://127.0.0.1:5050/models')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.models) {
+                            modelDropdown.innerHTML = data.models.map(m => {
+                                return `
                             <div class="model-option" data-model="${m.id}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
                                 <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 500;">${m.name}</div>
                                 <div style="color: rgba(255,255,255,0.4); font-size: 9px; margin-top: 2px;">
@@ -1128,45 +1185,46 @@ async function endSession() {
                             </div>
                         `}).join('');
 
-                        modelDropdown.querySelectorAll('.model-option').forEach(opt => {
-                            opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.08)');
-                            opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
-                            opt.addEventListener('click', () => {
-                                const modelId = opt.dataset.model;
-                                window.selectedModel = modelId;
-                                modelBtn.textContent = opt.querySelector('div').textContent.trim();
-                                modelDropdown.style.display = 'none';
-                                console.log('[MODEL] Selected:', modelId);
+                            modelDropdown.querySelectorAll('.model-option').forEach(opt => {
+                                opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.08)');
+                                opt.addEventListener('mouseleave', () => opt.style.background = 'transparent');
+                                opt.addEventListener('click', () => {
+                                    const modelId = opt.dataset.model;
+                                    window.selectedModel = modelId;
+                                    modelBtn.textContent = opt.querySelector('div').textContent.trim();
+                                    modelDropdown.style.display = 'none';
+                                    console.log('[MODEL] Selected:', modelId);
+                                });
                             });
-                        });
 
-                        // Set default
-                        if (data.default) {
-                            window.selectedModel = data.default;
+                            // Set default
+                            if (data.default) {
+                                window.selectedModel = data.default;
+                            }
+                            console.log('[MODEL] Models loaded successfully');
                         }
-                        console.log('[MODEL] Models loaded successfully');
-                    }
-                })
-                .catch(e => {
-                    console.warn(`[MODEL] Failed to load models (${attempts} retries left):`, e.message || e);
-                    if (attempts > 1) {
-                        setTimeout(() => fetchModelsWithRetry(attempts - 1, delay), delay);
-                    } else {
-                        console.error('[MODEL] All retries exhausted - models not loaded');
-                    }
-                });
+                    })
+                    .catch(e => {
+                        console.warn(`[MODEL] Failed to load models (${attempts} retries left):`, e.message || e);
+                        if (attempts > 1) {
+                            setTimeout(() => fetchModelsWithRetry(attempts - 1, delay), delay);
+                        } else {
+                            console.error('[MODEL] All retries exhausted - models not loaded');
+                        }
+                    });
+            }
+            fetchModelsWithRetry(10, 2000);
+
+            // Toggle dropdown
+            modelBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                modelDropdown.style.display = modelDropdown.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // Close on outside click
+            document.addEventListener('click', () => {
+                modelDropdown.style.display = 'none';
+            });
         }
-        fetchModelsWithRetry(10, 2000);
-
-        // Toggle dropdown
-        modelBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            modelDropdown.style.display = modelDropdown.style.display === 'none' ? 'block' : 'none';
-        });
-
-        // Close on outside click
-        document.addEventListener('click', () => {
-            modelDropdown.style.display = 'none';
-        });
     }
 })();
