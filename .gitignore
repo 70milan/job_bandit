@@ -112,3 +112,10 @@ commit_msg*.txt
 git_*.bat
 git_*.txt
 remove_key_history.py 
+
+
+# Utility and local scripts
+backend/main_test.py
+commit_and_push.bat
+generate_keys_force.py
+key_gen.py

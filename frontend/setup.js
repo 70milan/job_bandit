@@ -1049,9 +1049,10 @@ async function endSession() {
 
         // Reset the start button to disabled state (original state)
         if (sessionStartBtn) {
-            sessionStartBtn.disabled = true;
+            sessionStartBtn.disabled = false; // Allow re-enabling
             sessionStartBtn.style.opacity = '0.5';
             sessionStartBtn.onclick = handleCreateSession;
+            checkAllInputs(); // Re-evaluate button state based on empty fields
         }
 
         // Clear transcript and response areas
