@@ -333,7 +333,7 @@ function initSession() {
                 }
                 if (licenseBadge) {
                     licenseBadge.textContent = 'Licensed';
-                    licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
+                    licenseBadge.style.color = 'rgba(100, 255, 150, 0.4)';
                 }
                 console.log('[DEBUG] Valid license verified on startup');
             } else if (status === 'invalid') {
@@ -342,7 +342,7 @@ function initSession() {
                 localStorage.removeItem('valid_license_key');
                 if (licenseBadge) {
                     licenseBadge.textContent = 'Demo';
-                    licenseBadge.style.color = 'rgba(255, 200, 100, 0.7)';
+                    licenseBadge.style.color = 'rgba(255, 200, 100, 0.4)';
                 }
             } else {
                 // Backend unreachable ('empty') - preserve license, assume still valid
@@ -356,7 +356,7 @@ function initSession() {
                 }
                 if (licenseBadge) {
                     licenseBadge.textContent = 'Licensed';
-                    licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
+                    licenseBadge.style.color = 'rgba(100, 255, 150, 0.4)';
                 }
             }
         })();
@@ -364,7 +364,7 @@ function initSession() {
         // Show Unlicensed badge
         if (licenseBadge) {
             licenseBadge.textContent = 'Demo';
-            licenseBadge.style.color = 'rgba(255, 200, 100, 0.7)';
+            licenseBadge.style.color = 'rgba(255, 200, 100, 0.4)';
         }
     }
 
@@ -714,13 +714,13 @@ window.openPastSession = async function (sessionName) {
         const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
         if (!apiKey) {
             status.innerText = 'Enter your OpenAI API Key first, then select a past session.';
-            status.style.color = '#ff6b6b';
+            status.style.color = 'rgba(255, 107, 107, 0.5)';
             if (apiKeyInput) apiKeyInput.focus();
             return;
         }
 
         status.innerText = 'Validating API key...';
-        status.style.color = 'rgba(100, 255, 150, 0.9)';
+        status.style.color = 'rgba(100, 255, 150, 0.4)';
 
         const validateRes = await fetch('http://127.0.0.1:5050/validate-api-key', {
             method: 'POST',
@@ -731,7 +731,7 @@ window.openPastSession = async function (sessionName) {
 
         if (!validateData.valid) {
             status.innerText = validateData.error || 'Invalid API key';
-            status.style.color = '#ff6b6b';
+            status.style.color = 'rgba(255, 107, 107, 0.5)';
             return;
         }
 
@@ -752,7 +752,7 @@ window.openPastSession = async function (sessionName) {
             if (remainingMs > 0) {
                 const timeStr = formatCooldownTime(remainingMs);
                 status.innerText = `Demo cooldown active. Try again in ${timeStr}.`;
-                status.style.color = "rgba(255, 107, 107, 0.7)";
+                status.style.color = "rgba(255, 107, 107, 0.5)";
                 return;
             }
         }
@@ -761,13 +761,13 @@ window.openPastSession = async function (sessionName) {
 
         // Load session data from backend
         status.innerText = 'Loading session...';
-        status.style.color = 'rgba(100, 255, 150, 0.9)';
+        status.style.color = 'rgba(100, 255, 150, 0.4)';
         const loadRes = await fetch(`http://127.0.0.1:5050/session/load/${encodeURIComponent(sessionName)}`);
         const sessionData = await loadRes.json();
 
         if (sessionData.status !== 'ok') {
             status.innerText = sessionData.error || 'Failed to load session';
-            status.style.color = '#ff6b6b';
+            status.style.color = 'rgba(255, 107, 107, 0.5)';
             return;
         }
 
@@ -1053,7 +1053,7 @@ async function handleCreateSession() {
     function showStatus(msg, isError = true) {
         if (status) {
             status.innerText = msg;
-            status.style.color = isError ? "rgba(255, 107, 107, 0.7)" : "rgba(100, 255, 150, 0.6)";
+            status.style.color = isError ? "rgba(255, 107, 107, 0.5)" : "rgba(100, 255, 150, 0.4)";
         }
     }
 
@@ -1476,7 +1476,7 @@ function resetSessionUI() {
     const licenseBadge = document.getElementById('license-status-badge');
     if (savedLicenseKey && licenseBadge) {
         licenseBadge.textContent = 'Licensed';
-        licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
+        licenseBadge.style.color = 'rgba(100, 255, 150, 0.4)';
         const licInput = document.getElementById('setup-license');
         if (licInput) {
             licInput.value = 'License Active';
