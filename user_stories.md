@@ -25,6 +25,7 @@
 - **User Story 5.12:** As a user, I want a minimalist export button in the conversation history modal to download the entire chat log to a user-specified, elegantly formatted markdown (`.md`) file without emojis.
 - **User Story 5.13:** As a user, I want a dedicated "Copy" button specifically fixed to the top right of every code block within the AI response area to easily extract generated code.
 - **User Story 1.2:** As a user, I want the response times for GPT-5 and higher reasoning models to be optimized for interview flow. *(Updated stream pipeline to calculate and display both Time-to-First-Token (TTFT) and Total Response Time in the UI footprint and conversation history, formatted securely as `(1.8s START / 1.9s TOTAL)`)*
+- **User Story 1.3:** As a user, I want the session state to fully reset when my 2-hour or 5-minute timer expires so that I securely land on a fresh Start Menu instead of mistakenly continuing an expired session state.
 
 ## Pending
 

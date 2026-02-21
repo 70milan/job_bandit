@@ -72,9 +72,7 @@ function initializeStreamingAI() {
         responseArea.innerText = 'Generating...';
         const startTime = Date.now();
         const ttftEl = document.getElementById('response-time-ttft');
-        if (ttftEl) ttftEl.innerText = '--s';
         const ttEl = document.getElementById('response-time-tt');
-        if (ttEl) ttEl.innerText = '--s';
 
         try {
             const requestBody = {
@@ -335,7 +333,9 @@ function initializeStreamingAI() {
                 btnScreen.style.backgroundColor = '#444';
             }
 
-            btnGenerate.classList.remove('active');
+            btnGenerate.innerText = 'Generate AI';
+            // Auto-clear transcript on successful generation
+            if (transcriptArea) transcriptArea.innerText = '';
         } catch (e) {
             console.error('AI Generation Error:', e);
             responseArea.innerText = `Error: ${e.message}\n\nCheck if backend is running on port 5050.`;

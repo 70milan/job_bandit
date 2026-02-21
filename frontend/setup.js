@@ -592,14 +592,14 @@ function initSession() {
                     // Add [Copy] button to this pair
                     const copyBtn = document.createElement('div');
                     copyBtn.style.cssText = 'text-align: right; margin-top: 4px;';
-                    copyBtn.innerHTML = '<span style="color: rgba(255,255,255,0.3); font-size: 9px; cursor: pointer; letter-spacing: 0.5px; transition: color 0.2s;" onmouseover="this.style.color=\'rgba(100,255,150,0.7)\'" onmouseout="this.style.color=\'rgba(255,255,255,0.3)\'">[Copy]</span>';
+                    copyBtn.innerHTML = '<span style="color: rgba(255,255,255,0.4); font-size: 11px; cursor: pointer; transition: all 0.2s; font-family: monospace;" onmouseover="this.style.color=\'#fff\'" onmouseout="this.style.color=\'rgba(255,255,255,0.4)\'">[copy]</span>';
                     copyBtn.querySelector('span').onclick = function () {
                         const pair = this.closest('div[data-cost]') || this.parentElement.parentElement;
-                        const text = pair.innerText.replace(/\[Copy\]$/i, '').trim();
+                        const text = pair.innerText.replace(/\[copy\]$/i, '').trim();
                         navigator.clipboard.writeText(text).then(() => {
-                            this.textContent = '[Copied!]';
-                            this.style.color = 'rgba(100,255,150,0.8)';
-                            setTimeout(() => { this.textContent = '[Copy]'; this.style.color = 'rgba(255,255,255,0.3)'; }, 1200);
+                            this.textContent = '[copied!]';
+                            this.style.color = '#4CAF50';
+                            setTimeout(() => { this.textContent = '[copy]'; this.style.color = 'rgba(255,255,255,0.4)'; }, 2000);
                         });
                     };
                     cloned.appendChild(copyBtn);
@@ -801,14 +801,14 @@ window.openPastSession = async function (sessionName) {
                 // [Copy] button for this pair
                 const copyBtn = document.createElement('div');
                 copyBtn.style.cssText = 'text-align: right; margin-top: 4px;';
-                copyBtn.innerHTML = '<span style="color: rgba(255,255,255,0.3); font-size: 9px; cursor: pointer; letter-spacing: 0.5px; transition: color 0.2s;" onmouseover="this.style.color=\'rgba(100,255,150,0.7)\'" onmouseout="this.style.color=\'rgba(255,255,255,0.3)\'">[Copy]</span>';
+                copyBtn.innerHTML = '<span class="convo-copy-btn" style="color: rgba(255,255,255,0.4); font-size: 11px; cursor: pointer; transition: all 0.2s; font-family: monospace;" onmouseover="this.style.color=\'#fff\'" onmouseout="this.style.color=\'rgba(255,255,255,0.4)\'">[copy]</span>';
                 copyBtn.querySelector('span').onclick = function () {
-                    const pair = this.parentElement.parentElement;
-                    const text = pair.innerText.replace(/\[Copy\]$/i, '').trim();
+                    const pair = this.closest('div.convo-pair');
+                    const text = pair.innerText.replace(/\[copy\]$/i, '').trim();
                     navigator.clipboard.writeText(text).then(() => {
-                        this.textContent = '[Copied!]';
-                        this.style.color = 'rgba(100,255,150,0.8)';
-                        setTimeout(() => { this.textContent = '[Copy]'; this.style.color = 'rgba(255,255,255,0.3)'; }, 1200);
+                        this.textContent = '[copied!]';
+                        this.style.color = '#4CAF50';
+                        setTimeout(() => { this.textContent = '[copy]'; this.style.color = 'rgba(255,255,255,0.4)'; }, 2000);
                     });
                 };
                 pairDiv.appendChild(copyBtn);
