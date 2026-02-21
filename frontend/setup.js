@@ -1352,6 +1352,8 @@ function resetSessionUI() {
         fileInput.value = '';
         fileInput.classList.remove('selected');
     }
+    const detachBtn = document.getElementById('resume-detach-btn');
+    if (detachBtn) detachBtn.style.display = 'none';
 
     // Reset filename display
     const resumeFilename = document.getElementById('resume-filename');
@@ -1417,11 +1419,9 @@ function resetSessionUI() {
     if (statusDot) statusDot.className = 'dot';
 
     // Reset status bar metrics
-    const modelEl = document.getElementById('response-time-model');
     const ttftEl = document.getElementById('response-time-ttft');
     const ttEl = document.getElementById('response-time-tt');
     const costEl = document.getElementById('api-cost');
-    if (modelEl) modelEl.innerText = '--';
     if (ttftEl) ttftEl.innerText = '--s';
     if (ttEl) ttEl.innerText = '--s';
     if (costEl) costEl.innerText = '$0.00';
@@ -1549,7 +1549,7 @@ updateHWIDDisplay();
             const middleDiv = document.createElement('div');
             // flex margin-right: auto serves to push the rest to the right
             middleDiv.id = "status-bar-middle";
-            middleDiv.style.cssText = 'display: flex; align-items: center; gap: 15px; margin-left: 10px; margin-right: auto; z-index: 10; font-size: 10px;';
+            middleDiv.style.cssText = 'display: flex; align-items: center; gap: 15px; flex: 1; justify-content: center; z-index: 10; font-size: 10px;';
             middleDiv.innerHTML = `
                 <!-- Model -->
                 <div style="display: flex; align-items: center; gap: 4px; position: relative;">
@@ -1562,11 +1562,8 @@ updateHWIDDisplay();
                     </div>
                 </div>
 
-                <!-- Last Model & TTFT & TT -->
+                <!-- Last TTFT & TT -->
                 <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="color: rgba(255, 255, 255, 0.4);">Last Model Used:</span>
-                    <span id="response-time-model" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">--</span>
-                    <span style="color: rgba(255, 255, 255, 0.2); margin: 0 4px;">|</span>
                     <span style="color: rgba(255, 255, 255, 0.4);">Last TTFT:</span>
                     <span id="response-time-ttft" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">--s</span>
                     <span style="color: rgba(255, 255, 255, 0.2); margin: 0 4px;">|</span>
@@ -1580,10 +1577,7 @@ updateHWIDDisplay();
                     <span id="api-cost" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">$0.00</span>
                 </div>
             `;
-            // Ensure status bar is relative for absolute positioning of children
-            if (getComputedStyle(statusBar).position === 'static') {
-                statusBar.insertBefore(middleDiv, statusBar.children[1]); // Insert as 2nd child (between left and right)
-            }
+            statusBar.insertBefore(middleDiv, statusBar.children[1]); // Insert as 2nd child (between left and right)
         }
 
         // Initialize model selector

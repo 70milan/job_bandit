@@ -28,8 +28,8 @@
 - **User Story 1.3:** As a user, I want the session state to fully reset when my 2-hour or 5-minute timer expires so that I securely land on a fresh Start Menu instead of mistakenly continuing an expired session state.
 - **User Story 5.14:** As a user, I want the TTFT and Total Time metrics to persist between responses instead of flashing to `--s` immediately, and the live transcript field to auto-clear once an AI response is fully generated.
 - **User Story 5.15:** As a user, I want all utility buttons (`[copy]` and `[clear]`) to share a unified, sleek monospace aesthetic that turns green or white upon clicking before fading back.
-- **User Story 1.4:** As a user, I want a "Last Model Used" metric added to the footer so I can easily track exactly which AI text or vision model was chosen for the previous response without checking logs.
 - **User Story 1.5:** As a user, I want ChatGPT Nano to consistently wrap all generated code inside standard Markdown codeblocks instead of returning unformatted plaintext blocks.
+- **User Story 1.6:** As a user, I want the resume detach 'x' button to be properly hidden when a session ends so that the UI resets cleanly.
 
 ## Pending
 
