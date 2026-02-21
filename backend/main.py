@@ -607,7 +607,7 @@ async def post_profile(data: Dict[str, Any]):
 SESSIONS_DIR = BASE_DIR / 'sessions'
 current_session_name = None
 
-def save_conversation_to_session(question: str, response: str, had_screenshot: bool = False, model: str = "", response_time: float = 0, cost: float = 0):
+def save_conversation_to_session(question: str, response: str, had_screenshot: bool = False, model: str = "", response_time: float = 0, total_time: float = 0, cost: float = 0):
     """Helper function to save a Q&A pair to the current session"""
     global current_session_name
     
@@ -631,6 +631,7 @@ def save_conversation_to_session(question: str, response: str, had_screenshot: b
             'had_screenshot': had_screenshot,
             'model': model,
             'response_time': round(response_time, 1),
+            'total_time': round(total_time, 1),
             'cost': round(cost, 6)
         }
         conversation.append(entry)
@@ -1206,7 +1207,8 @@ async def stream_ai_response(req: AIRequest):
                 # Save to session folder if active
                 if current_session_name:
                     try:
-                        save_conversation_to_session(user_msg, full_response, bool(req.screenshot), model, response_time=_ttft, cost=response_cost)
+                        _total_time_current = _time.time() - _start_time
+                        save_conversation_to_session(user_msg, full_response, bool(req.screenshot), model, response_time=_ttft, total_time=_total_time_current, cost=response_cost)
                     except Exception as save_err:
                         print(f"[SESSION SAVE ERROR] {save_err}")
                 
@@ -1220,8 +1222,9 @@ async def stream_ai_response(req: AIRequest):
             
             update_usage(input_tokens, output_tokens, model, image_tokens)
             
+            _total_time = _time.time() - _start_time
             # Send completion signal with usage info and per-response cost
-            yield f"data: {json.dumps({'done': True, 'model': model, 'usage': session_usage, 'response_cost': round(response_cost, 6), 'ttft': round(_ttft, 2)})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'model': model, 'usage': session_usage, 'response_cost': round(response_cost, 6), 'ttft': round(_ttft, 2), 'total_time': round(_total_time, 2)})}\n\n"
             
         except Exception as e:
             err_msg = str(e)[:200]
@@ -1384,6 +1387,8 @@ async def generate_ai_response(req: AIRequest):
                 if not full_response:  # First token
                     _ttft = _time.time() - _start_time
                 full_response += chunk.choices[0].delta.content
+                
+        _total_time = _time.time() - _start_time
         
         # Calculate per-response cost
         input_text = "\n".join([m.get('content', '') if isinstance(m.get('content'), str) else str(m.get('content', '')) for m in messages])
@@ -1404,7 +1409,7 @@ async def generate_ai_response(req: AIRequest):
             # Save to session folder if active
             if current_session_name:
                 try:
-                    save_conversation_to_session(user_msg, full_response, bool(req.screenshot), model, response_time=_ttft, cost=_response_cost)
+                    save_conversation_to_session(user_msg, full_response, bool(req.screenshot), model, response_time=_ttft, total_time=_total_time, cost=_response_cost)
                 except Exception as save_err:
                     print(f"[SESSION SAVE ERROR] {save_err}")
             

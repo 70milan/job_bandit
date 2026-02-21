@@ -71,8 +71,10 @@ function initializeStreamingAI() {
         btnGenerate.classList.add('active');
         responseArea.innerText = 'Generating...';
         const startTime = Date.now();
-        const responseTimeEl = document.getElementById('response-time');
-        if (responseTimeEl) responseTimeEl.innerText = '';
+        const ttftEl = document.getElementById('response-time-ttft');
+        if (ttftEl) ttftEl.innerText = '--s';
+        const ttEl = document.getElementById('response-time-tt');
+        if (ttEl) ttEl.innerText = '--s';
 
         try {
             const requestBody = {
@@ -103,6 +105,7 @@ function initializeStreamingAI() {
             let usedModel = '';
             let responseCost = 0;
             let ttft = 0; // time to first token
+            let totalTime = 0;
             let firstChunkReceived = false;
 
             // Read stream with proper SSE line buffering
@@ -132,8 +135,8 @@ function initializeStreamingAI() {
                                 if (!firstChunkReceived) {
                                     firstChunkReceived = true;
                                     ttft = (Date.now() - startTime) / 1000;
-                                    if (responseTimeEl) {
-                                        responseTimeEl.innerText = ttft.toFixed(1) + 's';
+                                    if (ttftEl) {
+                                        ttftEl.innerText = ttft.toFixed(1) + 's';
                                     }
                                 }
                                 fullResponse += data.chunk;
@@ -146,8 +149,14 @@ function initializeStreamingAI() {
                                 // Use backend TTFT if available (more accurate)
                                 if (data.ttft && data.ttft > 0) {
                                     ttft = data.ttft;
-                                    if (responseTimeEl) {
-                                        responseTimeEl.innerText = ttft.toFixed(1) + 's';
+                                    if (ttftEl) {
+                                        ttftEl.innerText = ttft.toFixed(1) + 's';
+                                    }
+                                }
+                                if (data.total_time && data.total_time > 0) {
+                                    totalTime = data.total_time;
+                                    if (ttEl) {
+                                        ttEl.innerText = totalTime.toFixed(1) + 's';
                                     }
                                 }
                                 // Capture per-response cost
@@ -258,7 +267,13 @@ function initializeStreamingAI() {
                 const modelBadge = document.createElement('div');
                 modelBadge.className = 'model-signature';
                 const displayModel = usedModel.replace(/\bgpt\b/gi, 'GPT');
-                modelBadge.innerHTML = '<span style="color: #FF1493; margin-right: 4px;">—</span><span style="color: #888; font-weight: 500;">' + displayModel + '</span>';
+                let timeString = '';
+                if (ttft > 0 && totalTime > 0) {
+                    timeString = ` (${ttft.toFixed(1)}s start / ${totalTime.toFixed(1)}s total)`;
+                } else if (ttft > 0) {
+                    timeString = ` (${ttft.toFixed(1)}s)`;
+                }
+                modelBadge.innerHTML = '<span style="color: #FF1493; margin-right: 4px;">—</span><span style="color: #888; font-weight: 500;">' + displayModel + timeString + '</span>';
                 responseArea.appendChild(modelBadge);
             }
 
@@ -277,6 +292,7 @@ function initializeStreamingAI() {
                 pairDiv.style.cssText = 'border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; padding: 8px; background: rgba(255,255,255,0.02);';
                 pairDiv.dataset.cost = responseCost || 0;
                 pairDiv.dataset.responseTime = ttft || 0;
+                pairDiv.dataset.totalTime = totalTime || 0;
                 pairDiv.dataset.timestamp = new Date().toISOString();
 
                 // Input (transcript/question)
@@ -295,7 +311,11 @@ function initializeStreamingAI() {
                 // Build AI label with model and response time
                 let aiLabel = 'AI';
                 if (usedModel) aiLabel += ' (' + usedModel + ')';
-                if (ttft) aiLabel += ' (' + ttft.toFixed(1) + 's)';
+                if (ttft > 0 && totalTime > 0) {
+                    aiLabel += ` [${ttft.toFixed(1)}s start / ${totalTime.toFixed(1)}s total]`;
+                } else if (ttft > 0) {
+                    aiLabel += ' [' + ttft.toFixed(1) + 's]';
+                }
                 const formattedConvo = window.formatConvoText ? window.formatConvoText(cleanResponse) : cleanResponse.substring(0, 300);
                 rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong> <span style="color: rgba(255,255,255,0.25); font-size: 9px;">' + entryTime + '</span><br>' + formattedConvo;
                 pairDiv.appendChild(rDiv);

@@ -556,7 +556,7 @@ function initSession() {
                     } else {
                         costText = '$' + totalCost.toFixed(2);
                     }
-                    costFooter.innerHTML = '<span style="color: rgba(255, 255, 255, 0.4); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">API Cost:</span> <span style="color: rgba(120, 200, 180, 0.85); font-weight: 500; font-size: 11px;">' + costText + '</span>';
+                    costFooter.innerHTML = '<span style="color: rgba(255, 255, 255, 0.4); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Cumulative API Cost:</span> <span style="color: rgba(120, 200, 180, 0.85); font-weight: 500; font-size: 11px;">' + costText + '</span>';
                     costFooter.style.display = 'block';
                 } else {
                     costFooter.style.display = 'none';
@@ -854,6 +854,7 @@ window.openPastSession = async function (sessionName) {
                             pairDiv.style.cssText = 'border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; padding: 8px; background: rgba(255,255,255,0.02);';
                             pairDiv.dataset.cost = entry.cost || 0;
                             pairDiv.dataset.responseTime = entry.response_time || 0;
+                            pairDiv.dataset.totalTime = entry.total_time || 0;
                             pairDiv.dataset.timestamp = entry.timestamp || '';
 
                             if (entry.question) {
@@ -872,7 +873,11 @@ window.openPastSession = async function (sessionName) {
                                 rDiv.style.cssText = 'color: #ddd; font-size: 11px; line-height: 1.4; padding: 4px 8px; border-left: 2px solid rgba(100,255,150,0.4); border-radius: 2px; max-height: 200px; overflow-y: auto;';
                                 let aiLabel = 'AI';
                                 if (entry.model) aiLabel += ' (' + entry.model + ')';
-                                if (entry.response_time) aiLabel += ' (' + entry.response_time + 's)';
+                                if (entry.response_time > 0 && entry.total_time > 0) {
+                                    aiLabel += ` [${entry.response_time}s start / ${entry.total_time}s total]`;
+                                } else if (entry.response_time) {
+                                    aiLabel += ` [${entry.response_time}s]`;
+                                }
                                 const formattedConvo = window.formatConvoText ? window.formatConvoText(entry.response) : entry.response.substring(0, 300);
                                 const entryTimeR = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
                                 rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong>' + (entryTimeR ? ' <span style="color: rgba(255,255,255,0.25); font-size: 9px;">' + entryTimeR + '</span>' : '') + '<br>' + formattedConvo;
@@ -1489,10 +1494,13 @@ updateHWIDDisplay();
                     </div>
                 </div>
 
-                <!-- Last Response Time -->
+                <!-- Last TTFT & TT -->
                 <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="color: rgba(255, 255, 255, 0.4);">Last Response Time:</span>
-                    <span id="response-time" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">--s</span>
+                    <span style="color: rgba(255, 255, 255, 0.4);">Last TTFT:</span>
+                    <span id="response-time-ttft" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">--s</span>
+                    <span style="color: rgba(255, 255, 255, 0.2); margin: 0 4px;">|</span>
+                    <span style="color: rgba(255, 255, 255, 0.4);">Last TT:</span>
+                    <span id="response-time-tt" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">--s</span>
                 </div>
 
                 <!-- API Cost -->
