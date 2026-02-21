@@ -35,3 +35,4 @@
 
 - **User Story 1.3:** As a user, I want to verify that when using screenshot capabilities, the system accurately logs the model and response time.
 - **User Story 2.2:** As a user, I want the ability to customize my "Target Role" so the AI doesn't assume I am always a "Data Engineer".
+- **User Story 1.7:** As a user, I want an input field during session creation to specify a default language (e.g., Python, SQL, Java) so that AI-generated code consistently uses my preferred language if the input doesnt specify the language to write code in.
