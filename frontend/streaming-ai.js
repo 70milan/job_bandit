@@ -253,11 +253,12 @@ function initializeStreamingAI() {
             responseArea.innerHTML = formattedResponse;
 
             // Add styled model badge in footer, right-aligned
+            // Add styled model badge as a fixed footer, right-aligned
             if (usedModel) {
                 const modelBadge = document.createElement('div');
-                modelBadge.style.cssText = 'margin-top: 20px; padding: 6px 10px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; letter-spacing: 0.5px; text-align: right;';
+                modelBadge.className = 'model-signature';
                 const displayModel = usedModel.replace(/\bgpt\b/gi, 'GPT');
-                modelBadge.innerHTML = '<span style="color: #EEFF00; font-weight: 600;">Model Used: </span><span style="color: #FF6D00; font-weight: 600;">' + displayModel + '</span>';
+                modelBadge.innerHTML = '<span style="color: #FF1493; margin-right: 4px;">—</span><span style="color: #888; font-weight: 500;">' + displayModel + '</span>';
                 responseArea.appendChild(modelBadge);
             }
 
