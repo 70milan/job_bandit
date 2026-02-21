@@ -20,7 +20,7 @@
 - **User Story 5.9:** As a user, I want markdown formatting like bold text to be correctly parsed in the UI so code block language labels are clean.
 - **User Story 1.4:** As a user, I want unsupported models like ChatGPT-5 to be removed from the options to avoid connection errors.
 - **User Story 2.4:** As a user, I want the session status indicator to proactively test the connection, turning green immediately when connected and red if the backend is unreachable.
-- **User Story 5.10:** As a user, I want the "Model Used" indicator to look like a clean footprint signature fixed to the bottom-right of the AI response to track the model used inconspicuously.
+- **User Story 5.10:** As a user, I want the "Model Used" indicator to look like a clean footprint signature fixed to the bottom-right of the AI response to track the model used inconspicuously. *(Fixed absolute positioning bug where the footer would overlap with long AI responses by moving it to an inline block with frosted styling)*
 - **User Story 5.11:** As a user, I want the "Cumulative API Cost" label in the past sessions modal to retain the word "Cumulative" while matching the minimalist aesthetic of the main app, using muted soft colors instead of bright yellow.
 - **User Story 1.2:** As a user, I want the response times for GPT-5 and higher reasoning models to be optimized for interview flow. *(Updated stream pipeline to calculate and display both Time-to-First-Token (TTFT) and Total Response Time in the UI footprint and conversation history, formatted securely as `(1.8s START / 1.9s TOTAL)`)*
 
