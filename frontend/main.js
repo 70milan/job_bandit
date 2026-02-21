@@ -437,6 +437,25 @@ app.whenReady().then(() => {
   tray.setContextMenu(contextMenu);
   tray.on('click', () => (win.isVisible() ? win.hide() : win.show()));
 
+  /* ---- IPC: Export Conversation ---- */
+  ipcMain.handle('export-conversation', async (event, content, defaultName) => {
+    const { filePath } = await dialog.showSaveDialog(win, {
+      title: 'Export Conversation',
+      defaultPath: defaultName || 'conversation_export.txt',
+      filters: [
+        { name: 'Text Documents', extensions: ['txt'] },
+        { name: 'Markdown Documents', extensions: ['md'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+
+    if (filePath) {
+      require('fs').writeFileSync(filePath, content, 'utf-8');
+      return { success: true, filePath };
+    }
+    return { success: false };
+  });
+
 
   /* ---- IPC: Expand from Mini Mode ---- */
   ipcMain.on('expand-from-mini', () => {

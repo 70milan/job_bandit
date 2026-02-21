@@ -484,6 +484,72 @@ function initSession() {
     const convoModal = document.getElementById('conversation-modal');
     const closeConvoX = document.getElementById('close-conversation-modal');
     const closeConvoBtn = document.getElementById('btn-close-convo-modal');
+    const exportConvoBtn = document.getElementById('export-conversation-btn');
+
+    if (exportConvoBtn) {
+        exportConvoBtn.onclick = async () => {
+            const convoArea = document.getElementById('conversation-area');
+            if (!convoArea || convoArea.children.length === 0) {
+                alert("No conversation history to export yet.");
+                return;
+            }
+
+            let exportText = `Conversation Export: ${currentSessionName || 'Session'}\n`;
+            exportText += `Exported At: ${new Date().toLocaleString()}\n`;
+            exportText += `=================================================\n\n`;
+
+            Array.from(convoArea.children).forEach(child => {
+                const ts = child.dataset.timestamp ? new Date(child.dataset.timestamp).toLocaleTimeString() : '';
+                const qDiv = child.querySelector('div:first-child');
+                const aDiv = child.querySelector('div:nth-child(2)');
+
+                if (qDiv) {
+                    // Extract text but remove the "Input HH:MM:SS" header
+                    let qText = qDiv.innerText.replace(/^Input(\s+\d{1,2}:\d{2}:\d{2}\s*(AM|PM)?)?/i, '').trim();
+                    exportText += `[USER] ${ts ? '(' + ts + ')' : ''}\n${qText}\n\n`;
+                }
+
+                if (aDiv) {
+                    // Extract text but remove the "AI (MODEL) [TIME] HH:MM:SS" header
+                    // We can just get the innerText and remove lines that look like headers, or just strip the first line if it's the header
+                    // A safer way is to split by newline and remove the first line which is the header
+                    let lines = aDiv.innerText.split('\n');
+                    if (lines.length > 0 && lines[0].startsWith('AI')) {
+                        lines.shift();
+                    }
+                    let aText = lines.join('\n').trim();
+                    exportText += `[AI] ${ts ? '(' + ts + ')' : ''}\n${aText}\n\n`;
+                }
+
+                exportText += `-------------------------------------------------\n\n`;
+            });
+
+            if (typeof require !== 'undefined') {
+                const { ipcRenderer } = require('electron');
+                try {
+                    const defaultName = `Conversation_${currentSessionName ? currentSessionName.replace(/[^a-z0-9]/gi, '_') : Date.now()}.txt`;
+                    const result = await ipcRenderer.invoke('export-conversation', exportText, defaultName);
+                    if (result && result.success) {
+                        console.log('Exported to:', result.filePath);
+                        exportConvoBtn.style.color = '#4CAF50';
+                        setTimeout(() => { exportConvoBtn.style.color = 'rgba(255,255,255,0.4)'; }, 2000);
+                    }
+                } catch (err) {
+                    console.error('Export failed:', err);
+                    alert('Failed to export conversation.');
+                }
+            } else {
+                // Fallback for non-Electron environment
+                const blob = new Blob([exportText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Conversation_${currentSessionName ? currentSessionName.replace(/[^a-z0-9]/gi, '_') : Date.now()}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        };
+    }
 
     if (convoBtn) {
         convoBtn.onclick = () => {
