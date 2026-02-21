@@ -11,8 +11,8 @@ window.formatConvoText = function (text) {
     // Normalize line endings
     formatted = formatted.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    // Fenced code blocks: ```lang\n...\n``` (lenient: handles GPT-5 formatting variations)
-    formatted = formatted.replace(/`{3,}\s*(\w+)?\s*\n([\s\S]*?)\n?\s*`{3,}/g, (match, lang, code) => {
+    // Fenced code blocks: ```lang\n...\n``` (lenient: handles variations)
+    formatted = formatted.replace(/`{3,}\s*([a-zA-Z0-9_#\+\-]+)?\s*\n([\s\S]*?)\n?\s*`{3,}/g, (match, lang, code) => {
         const language = lang || 'plaintext';
         const trimmedCode = code.replace(/^\n+|\n+$/g, '');
         const escapedCode = trimmedCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -28,6 +28,10 @@ window.formatConvoText = function (text) {
         inlineCodeBlocks.push(`<code style="background:rgba(255,255,255,0.08);padding:1px 4px;border-radius:3px;font-size:10px;">${escapedCode}</code>`);
         return placeholder;
     });
+
+    // Remove ** asterisks specifically for language labels before code blocks, or format as bold 
+    // We parse basic bold **text** to <strong>text</strong> so asterisks don't show
+    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
     // Newlines to <br>
     formatted = formatted.replace(/\n/g, '<br>');
@@ -210,8 +214,8 @@ function initializeStreamingAI() {
             formattedResponse = formattedResponse.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
             // Match fenced code blocks: 3+ backticks, optional language, content, closing backticks
-            // Lenient regex: handles GPT-5 variations (no trailing newline, extra whitespace)
-            formattedResponse = formattedResponse.replace(/`{3,}\s*(\w+)?\s*\n([\s\S]*?)\n?\s*`{3,}/g, (match, lang, code) => {
+            // Lenient regex: handles languages with symbols (c++, c#) and whitespace variations
+            formattedResponse = formattedResponse.replace(/`{3,}\s*([a-zA-Z0-9_#\+\-]+)?\s*\n([\s\S]*?)\n?\s*`{3,}/g, (match, lang, code) => {
                 const language = lang || 'plaintext';
                 const trimmedCode = code.replace(/^\n+|\n+$/g, '');
                 const escapedCode = trimmedCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -226,6 +230,9 @@ function initializeStreamingAI() {
                 inlineCodeBlocks.push(`<code>${escapedCode}</code>`);
                 return placeholder;
             });
+
+            // Handle Markdown bold **text**
+            formattedResponse = formattedResponse.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
             formattedResponse = formattedResponse.replace(/\n/g, '<br>');
 
