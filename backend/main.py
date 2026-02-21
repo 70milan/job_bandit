@@ -18,10 +18,11 @@ from typing import Optional, Dict, Any
 try:
     import tiktoken
     encoding = tiktoken.encoding_for_model("gpt-4o")
+    print("[STARTUP] tiktoken loaded - accurate token counting enabled")
 except:
     tiktoken = None
     encoding = None
-    print("Warning: tiktoken not installed - cost estimation will be approximate")
+    print("[STARTUP WARNING] tiktoken not available - cost estimation will be APPROXIMATE (len/4)")
 
 # Session usage tracking
 session_usage = {
@@ -489,18 +490,32 @@ import hashlib
 async def debug_key_info():
     """Return fingerprint of the current public key."""
     try:
-        if os.path.exists(PUBLIC_KEY_FILE):
-            with open(PUBLIC_KEY_FILE, "rb") as f:
-                content = f.read()
-                fingerprint = hashlib.sha256(content).hexdigest()[:16]
-                return {"status": "ok", "fingerprint": fingerprint, "path": str(Path(PUBLIC_KEY_FILE).resolve())}
+        # Use the actual loader logic to see what the app sees
+        content = load_public_key()
+        if content:
+            fingerprint = hashlib.sha256(content).hexdigest()[:16]
+            return {"status": "ok", "fingerprint": fingerprint, "source": "See logs"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
     return {"status": "error", "error": "Key not found"}
 
 def load_public_key():
-    """Load public key from file."""
+    """Load public key from file (Prioritize Bundled)."""
+    # 1. Try bundled key first (if frozen)
+    if getattr(sys, 'frozen', False):
+        try:
+            bundle_dir = sys._MEIPASS
+            bundled_path = os.path.join(bundle_dir, PUBLIC_KEY_FILE)
+            if os.path.exists(bundled_path):
+                print(f"[VERIFY] Using bundled key from: {bundled_path}")
+                with open(bundled_path, "rb") as f:
+                    return f.read()
+        except Exception as e:
+            print(f"[VERIFY ERROR] Bundled key read failed: {e}")
+
+    # 2. Fallback to local file (Dev mode or missing bundle)
     if os.path.exists(PUBLIC_KEY_FILE):
+        print(f"[VERIFY] Using local key from: {PUBLIC_KEY_FILE}")
         with open(PUBLIC_KEY_FILE, "rb") as f:
             return f.read()
     return None
@@ -515,11 +530,14 @@ def verify_license_signature(hwid: str, license_key_b64: str) -> bool:
             
         public_key = serialization.load_pem_public_key(pub_key_bytes)
 
+        # 0. Sanitize Input (Remove all whitespace/newlines)
+        license_key_b64 = "".join(license_key_b64.split())
+
         # 1. Strict Format Check (Regex)
         import re
         import base64
         # RSA-2048 signature in B64 is exactly 344 chars (including ==)
-        if not re.match(r'^[A-Za-z0-9+/]{342}==$', license_key_b64.strip()):
+        if not re.match(r'^[A-Za-z0-9+/]{342}==$', license_key_b64):
             print("ERROR: Invalid license key format or length.")
             return False
 

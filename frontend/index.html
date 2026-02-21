@@ -907,6 +907,13 @@
     }
 
     async function startCapture(mode) {
+      // Guard: don't attempt WS connection if no session is active
+      if (!window.isSessionActive) {
+        statusText.innerText = 'Start a session first';
+        statusDot.className = 'dot';
+        return;
+      }
+
       if (activeMode === mode) {
         stopCapture();
         return;

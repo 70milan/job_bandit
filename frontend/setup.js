@@ -311,12 +311,27 @@ function initSession() {
                     licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
                 }
                 console.log('[DEBUG] Valid license verified on startup');
-            } else {
-                console.log('[DEBUG] Stale or invalid license found - clearing');
+            } else if (status === 'invalid') {
+                // Only clear if backend explicitly says invalid (not when unreachable)
+                console.log('[DEBUG] License explicitly invalid - clearing');
                 localStorage.removeItem('valid_license_key');
                 if (licenseBadge) {
                     licenseBadge.textContent = 'Demo';
                     licenseBadge.style.color = 'rgba(255, 200, 100, 0.7)';
+                }
+            } else {
+                // Backend unreachable ('empty') - preserve license, assume still valid
+                console.log('[DEBUG] Backend not ready yet - preserving saved license');
+                isLicensed = true;
+                if (licenseInput) {
+                    licenseInput.value = 'License Active';
+                    licenseInput.disabled = true;
+                    licenseInput.style.opacity = '0.5';
+                    licenseInput.style.cursor = 'not-allowed';
+                }
+                if (licenseBadge) {
+                    licenseBadge.textContent = 'Licensed';
+                    licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
                 }
             }
         })();
@@ -760,12 +775,18 @@ window.openPastSession = async function (sessionName) {
 
                             if (entry.response) {
                                 const rDiv = document.createElement('div');
-                                rDiv.style.cssText = 'color: #ddd; font-size: 11px; line-height: 1.4; padding: 4px 8px; border-left: 2px solid rgba(100,255,150,0.4); border-radius: 2px; max-height: 80px; overflow-y: auto;';
+                                rDiv.style.cssText = 'color: #ddd; font-size: 11px; line-height: 1.4; padding: 4px 8px; border-left: 2px solid rgba(100,255,150,0.4); border-radius: 2px; max-height: 200px; overflow-y: auto;';
                                 let aiLabel = 'AI';
                                 if (entry.model) aiLabel += ' (' + entry.model + ')';
                                 if (entry.response_time) aiLabel += ' (' + entry.response_time + 's)';
-                                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong><br>' + entry.response.substring(0, 300) + (entry.response.length > 300 ? '...' : '');
+                                const formattedConvo = window.formatConvoText ? window.formatConvoText(entry.response) : entry.response.substring(0, 300);
+                                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong><br>' + formattedConvo;
                                 pairDiv.appendChild(rDiv);
+
+                                // Highlight code blocks
+                                rDiv.querySelectorAll('pre code').forEach((block) => {
+                                    if (typeof hljs !== 'undefined') hljs.highlightElement(block);
+                                });
                             }
 
                             convoArea.appendChild(pairDiv);

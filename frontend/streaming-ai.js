@@ -1,6 +1,47 @@
 // streaming-ai.js - Stream AI response handler
 // Override btnGenerate to use streaming endpoint
 
+// Global: Format text with code blocks for conversation entries
+window.formatConvoText = function (text) {
+    if (!text) return '';
+    let formatted = text;
+    const codeBlocks = [];
+    const inlineCodeBlocks = [];
+
+    // Normalize line endings
+    formatted = formatted.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Fenced code blocks: ```lang\n...\n```
+    formatted = formatted.replace(/`{3,}\s*(\w+)?\s*\n([\s\S]*?)\n\s*`{3,}/g, (match, lang, code) => {
+        const language = lang || 'plaintext';
+        const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const placeholder = `___CONVO_CODE_${codeBlocks.length}___`;
+        codeBlocks.push(`<pre style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:8px;margin:4px 0;overflow-x:auto;"><code class="language-${language}" style="font-size:10px;line-height:1.3;">${escapedCode}</code></pre>`);
+        return placeholder;
+    });
+
+    // Inline code: `code`
+    formatted = formatted.replace(/`([^`]+)`/g, (match, code) => {
+        const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const placeholder = `___CONVO_INLINE_${inlineCodeBlocks.length}___`;
+        inlineCodeBlocks.push(`<code style="background:rgba(255,255,255,0.08);padding:1px 4px;border-radius:3px;font-size:10px;">${escapedCode}</code>`);
+        return placeholder;
+    });
+
+    // Newlines to <br>
+    formatted = formatted.replace(/\n/g, '<br>');
+
+    // Restore placeholders
+    codeBlocks.forEach((block, i) => {
+        formatted = formatted.replace(`___CONVO_CODE_${i}___`, block);
+    });
+    inlineCodeBlocks.forEach((code, i) => {
+        formatted = formatted.replace(`___CONVO_INLINE_${i}___`, code);
+    });
+
+    return formatted;
+};
+
 function initializeStreamingAI() {
     console.log('[STREAM] Initializing streaming AI...');
 
@@ -230,13 +271,19 @@ function initializeStreamingAI() {
                 // AI response (truncated for readability)
                 const cleanResponse = fullResponse.replace(/\n{3,}/g, '\n').replace(/\[Model Used:.*\]/, '').trim();
                 const rDiv = document.createElement('div');
-                rDiv.style.cssText = 'color: #ddd; font-size: 11px; line-height: 1.4; padding: 4px 8px; border-left: 2px solid rgba(100,255,150,0.4); border-radius: 2px; max-height: 80px; overflow-y: auto;';
+                rDiv.style.cssText = 'color: #ddd; font-size: 11px; line-height: 1.4; padding: 4px 8px; border-left: 2px solid rgba(100,255,150,0.4); border-radius: 2px; max-height: 200px; overflow-y: auto;';
                 // Build AI label with model and response time
                 let aiLabel = 'AI';
                 if (usedModel) aiLabel += ' (' + usedModel + ')';
                 if (ttft) aiLabel += ' (' + ttft.toFixed(1) + 's)';
-                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong><br>' + cleanResponse.substring(0, 300) + (cleanResponse.length > 300 ? '...' : '');
+                const formattedConvo = window.formatConvoText ? window.formatConvoText(cleanResponse) : cleanResponse.substring(0, 300);
+                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong><br>' + formattedConvo;
                 pairDiv.appendChild(rDiv);
+
+                // Highlight code blocks in conversation entry
+                rDiv.querySelectorAll('pre code').forEach((block) => {
+                    if (typeof hljs !== 'undefined') hljs.highlightElement(block);
+                });
 
                 convoArea.appendChild(pairDiv);
                 convoArea.scrollTop = convoArea.scrollHeight;
