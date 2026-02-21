@@ -111,6 +111,9 @@ ipcMain.on('update-decline', () => {
 
 autoUpdater.on('update-not-available', () => {
   console.log('No updates available');
+  if (win) {
+    win.webContents.send('update-check-result', 'latest');
+  }
 });
 
 autoUpdater.on('download-progress', (progress) => {
@@ -163,6 +166,9 @@ ipcMain.on('update-later', () => {
 
 autoUpdater.on('error', (err) => {
   console.error('Auto-updater error:', err);
+  if (win) {
+    win.webContents.send('update-check-result', 'error', err.message);
+  }
   hideUpdateUI();
 });
 // ============ END AUTO-UPDATER ============
@@ -477,8 +483,22 @@ app.whenReady().then(() => {
     app.quit();
   });
 
+  /* ---- IPC: Manual Update Check ---- */
+  ipcMain.on('manual-update-check', () => {
+    console.log('[UPDATE] Manual check requested');
+    autoUpdater.checkForUpdates();
+  });
+
+  /* ---- IPC: Get App Version ---- */
+  ipcMain.handle('get-app-version', () => {
+    return app.getVersion();
+  });
+
   if (app.dock) app.dock.hide();
 });
+
+// Configure logger for autoUpdater
+autoUpdater.logger = console;
 
 // Robust backend cleanup function
 function cleanupBackend() {

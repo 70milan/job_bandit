@@ -1,9 +1,11 @@
 #setup-resume.selected {
   color: #26ed79 !important;
 }
+
 #setup-resume {
-  color: #ff4444 !important;
+  color: rgba(255, 107, 107, 0.5) !important;
 }
+
 /* Session Setup Overlay - Minimal & Futuristic */
 #setup-overlay {
   position: fixed;

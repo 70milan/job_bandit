@@ -30,10 +30,20 @@
 - **User Story 5.15:** As a user, I want all utility buttons (`[copy]` and `[clear]`) to share a unified, sleek monospace aesthetic that turns green or white upon clicking before fading back.
 - **User Story 1.5:** As a user, I want ChatGPT Nano to consistently wrap all generated code inside standard Markdown codeblocks instead of returning unformatted plaintext blocks.
 - **User Story 1.6:** As a user, I want the resume detach 'x' button to be properly hidden when a session ends so that the UI resets cleanly.
-- **User Story 1.8:** As a user, I want demo mode sessions to be restricted to once every 47 minutes to encourage purchasing a full license.
+- **User Story 1.8:** As a user, I want demo mode sessions to be restricted to once every 47 minutes (calculating the wait from the moment a session ends) to encourage purchasing a full license. *(Implemented high-precision countdown showing minutes and seconds in the status area).*
+- **User Story 3.2:** As a user, I want a minimalist, console-style status area for all setup feedback, ensuring that validation messages and errors appear in one consistent location with subtle, premium color coding.
+- **User Story 3.3:** As a user, I want the "Demo mode" informational text to intelligently hide once my license is verified, keeping the UI clean and relevant to my current status.
+- **User Story 3.4:** As a user, I want all error and success messages to share a unified, subtle color palette (Red: `rgba(255, 107, 107, 0.5)`, Green: `rgba(100, 255, 150, 0.4)`), with validation status colors only appearing after successful verification to avoid misleading feedback.
+- **User Story 4.4:** As an administrator, I want a dedicated license generation script that securely signs Hardware IDs using RSA-PSS padding, matching the application's verification logic exactly.
 
 ## Pending
 
 - **User Story 1.3:** As a user, I want to verify that when using screenshot capabilities, the system accurately logs the model and response time.
 - **User Story 2.2: [STRETCH]** As a user, I want the ability to customize my session profile (e.g., Target Role, Default Programming Language) during session creation so the AI provides more tailored and language-consistent responses.
 - **User Story 3.1: [STRETCH]** As a developer, I want to obfuscate the application code and the final executable to protect intellectual property and prevent reverse-engineering.
+
+- **User Story 1.9:** As a user, I want the application to detect if another instance is already running and show an error message instead of opening a second one, ensuring system stability.
+
+- **User Story 4.5:** As a developer, I want to include digital signatures and author information in the application to prevent antivirus software from flagging it as malware.
+
+- **User Story 1.10:** As a user, I want the application to remain "stealthy" in the Task Manager without requiring a process rename, maintaining a low profile during operation.

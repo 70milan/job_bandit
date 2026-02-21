@@ -464,7 +464,7 @@ function initSession() {
                     listContainer.innerHTML = '<div style="color: rgba(255,255,255,0.4); font-size: 12px; text-align: center; padding: 20px;">No past sessions found</div>';
                 }
             } catch (e) {
-                listContainer.innerHTML = '<div style="color: #ff6b6b; font-size: 12px; text-align: center; padding: 20px;">Error loading sessions. Is backend running?</div>';
+                listContainer.innerHTML = '<div style="color: rgba(255, 107, 107, 0.5); font-size: 12px; text-align: center; padding: 20px;">Error loading sessions. Is backend running?</div>';
             }
         };
     }
@@ -1013,7 +1013,7 @@ window.openPastSession = async function (sessionName) {
     } catch (e) {
         console.error('Error loading past session:', e);
         status.innerText = 'Error loading session. Is backend running?';
-        status.style.color = '#ff6b6b';
+        status.style.color = 'rgba(255, 107, 107, 0.5)';
         const statusDot = document.getElementById('status-dot');
         if (statusDot) statusDot.className = 'dot error';
     }
@@ -1165,6 +1165,7 @@ async function handleCreateSession() {
 
         // 1. Validate API Key
         status.innerText = "Validating API key...";
+        status.style.color = "#aaa"; // Neutral during validation
         const validateRes = await fetch('http://127.0.0.1:5050/validate-api-key', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1175,6 +1176,7 @@ async function handleCreateSession() {
         if (!validateJson.valid) {
             throw new Error(validateJson.error || "Invalid API key");
         }
+        status.style.color = "rgba(100, 255, 150, 0.4)"; // Green only after success
 
         // 2. Upload Resume (to session folder)
         status.innerText = "Uploading resume...";
@@ -1213,7 +1215,7 @@ async function handleCreateSession() {
         // 4. Session created - hide overlay
         sessionCreated = true;
         status.innerText = isLicensed ? "Session created!" : "Demo session created (5 min)";
-        status.style.color = "rgba(100, 255, 150, 0.9)";
+        status.style.color = "rgba(100, 255, 150, 0.4)";
 
         // Update timer display to show correct duration
         const timerText = document.getElementById('session-timer-text');
@@ -1249,7 +1251,7 @@ async function handleCreateSession() {
     } catch (e) {
         console.error('Session Creation Error:', e);
         status.innerText = `Error: ${e.message}`;
-        status.style.color = "#ff4444";
+        status.style.color = "rgba(255, 107, 107, 0.5)";
         startBtn.disabled = false;
         startBtn.style.opacity = '1';
     }
@@ -1332,7 +1334,7 @@ async function startSessionTimer() {
         if (timerBox) {
             if (remaining <= tenMin) {
                 // Critical: last 10 minutes — red glow
-                timerBox.style.color = '#ff4444';
+                timerBox.style.color = 'rgba(255, 107, 107, 1)'; // Solid subtle red for readability
                 timerBox.style.borderColor = 'rgba(255, 68, 68, 0.5)';
                 timerBox.style.background = 'rgba(255, 50, 50, 0.1)';
                 timerBox.style.boxShadow = '0 0 12px rgba(255, 50, 50, 0.25)';
@@ -1565,7 +1567,7 @@ async function updateHWIDDisplay() {
             setupDisplay.querySelector('span').textContent = hwid;
 
             if (hwid === "Backend Offline") {
-                setupDisplay.querySelector('span').style.color = "rgba(255, 100, 100, 0.4)";
+                setupDisplay.querySelector('span').style.color = "rgba(255, 107, 107, 0.5)";
                 setupDisplay.style.cursor = 'default';
                 setupDisplay.onclick = null;
             } else {
@@ -1696,5 +1698,55 @@ updateHWIDDisplay();
                 modelDropdown.style.display = 'none';
             });
         }
+    }
+})();
+
+// App Version & Update Check
+(async function () {
+    if (typeof ipcRenderer !== 'undefined') {
+        try {
+            const version = await ipcRenderer.invoke('get-app-version');
+            const versionSpans = document.querySelectorAll('.app-version');
+            versionSpans.forEach(span => span.textContent = `v${version}`);
+        } catch (err) {
+            console.error('Failed to get app version:', err);
+        }
+
+        const updateBtn = document.getElementById('check-update-btn');
+        if (updateBtn) {
+            updateBtn.onclick = () => {
+                updateBtn.textContent = 'Checking...';
+                updateBtn.style.pointerEvents = 'none';
+                ipcRenderer.send('manual-update-check');
+
+                // Reset after 5 seconds if no response from main (which shows its own overlay)
+                setTimeout(() => {
+                    if (updateBtn.textContent === 'Checking...') {
+                        updateBtn.textContent = 'Check for updates';
+                        updateBtn.style.pointerEvents = 'auto';
+                    }
+                }, 5000);
+            };
+        }
+
+        ipcRenderer.on('update-check-result', (event, status, msg) => {
+            const updateBtn = document.getElementById('check-update-btn');
+            if (!updateBtn) return;
+
+            if (status === 'latest') {
+                updateBtn.textContent = 'You are on the latest version';
+                updateBtn.style.color = 'rgba(100, 255, 150, 0.4)';
+            } else if (status === 'error') {
+                updateBtn.textContent = 'Update Error';
+                updateBtn.style.color = 'rgba(255, 107, 107, 0.5)';
+                console.error('Update Check Failed:', msg);
+            }
+
+            setTimeout(() => {
+                updateBtn.textContent = 'Check for updates';
+                updateBtn.style.color = '';
+                updateBtn.style.pointerEvents = 'auto';
+            }, 3000);
+        });
     }
 })();
