@@ -232,7 +232,8 @@ function initializeStreamingAI() {
                 const trimmedCode = code.replace(/^\n+|\n+$/g, '');
                 const escapedCode = trimmedCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
-                codeBlocks.push(`<pre><code class="language-${language}">${escapedCode}</code></pre>`);
+                const copyBtnHtml = `<span class="copy-code-btn" onclick="copyCodeBlock(this)" style="position: absolute; top: 8px; right: 12px; color: rgba(255,255,255,0.4); font-size: 11px; cursor: pointer; transition: all 0.2s; z-index: 10; font-family: monospace;" onmouseover="this.style.color='#fff';" onmouseout="this.style.color='rgba(255,255,255,0.4)';">[copy]</span>`;
+                codeBlocks.push(`<div style="position: relative; margin: 8px 0;">${copyBtnHtml}<pre style="margin: 0; padding-top: 36px;"><code class="language-${language}">${escapedCode}</code></pre></div>`);
                 return placeholder;
             });
 
@@ -363,3 +364,18 @@ if (document.readyState === 'loading') {
 } else {
     setTimeout(initializeStreamingAI, 100);
 }
+
+window.copyCodeBlock = function (btn) {
+    const pre = btn.nextElementSibling;
+    const code = pre ? pre.querySelector('code') : null;
+    if (code) {
+        navigator.clipboard.writeText(code.innerText || code.textContent).then(() => {
+            btn.innerText = '[copied!]';
+            btn.style.color = '#4CAF50';
+            setTimeout(() => {
+                btn.innerText = '[copy]';
+                btn.style.color = 'rgba(255,255,255,0.4)';
+            }, 2000);
+        });
+    }
+};

@@ -1269,8 +1269,27 @@ async function startSessionTimer() {
                 timerBox.style.boxShadow = 'none';
             }
             if (isLicensed) {
-                customAlert('Session time expired! (2 hours)');
+                // Completely end the session so the system resets it properly
+                window.isSessionActive = false;
+                sessionCreated = false;
+                sessionTimerStarted = false;
+                currentSessionName = null;
+                sessionStartTimestamp = null;
+                sessionEndTime = null;
+
+                const startBtn = document.getElementById('btn-session-start');
+                if (startBtn) {
+                    startBtn.classList.remove('active');
+                }
+
+                customAlert('Session time expired! (2 hours)\n\nThe current session has been closed. Please create a new session.');
                 statusText.innerText = 'Session Expired';
+
+                // Show the setup overlay again
+                const overlay = document.getElementById('setup-overlay');
+                if (overlay) {
+                    overlay.style.display = 'flex';
+                }
             } else {
                 // Demo expired - show license prompt
                 showLicensePrompt();
@@ -1338,6 +1357,126 @@ function stopSessionTimer() {
     if (statusDot) statusDot.className = 'dot';
 }
 
+function resetSessionUI() {
+    // Reset usage for next session
+    fetch('http://127.0.0.1:5050/usage/reset', { method: 'POST' }).catch(() => { });
+
+    // Clear conversation history on backend
+    fetch('http://127.0.0.1:5050/conversation/clear', { method: 'POST' }).catch(() => { });
+
+    // Get DOM elements
+    const fileInput = document.getElementById('setup-resume');
+    const apiKeyInput = document.getElementById('setup-apikey');
+    const jdInput = document.getElementById('setup-jobdesc');
+    const sessionNameInput = document.getElementById('setup-session-name');
+    const status = document.getElementById('setup-status');
+    const sessionStartBtn = document.getElementById('btn-start-session');
+    const overlay = document.getElementById('setup-overlay');
+
+    // Reset file input
+    if (fileInput) {
+        fileInput.value = '';
+        fileInput.classList.remove('selected');
+    }
+
+    // Reset filename display
+    const resumeFilename = document.getElementById('resume-filename');
+    if (resumeFilename) {
+        resumeFilename.textContent = 'No file chosen';
+        resumeFilename.style.color = 'rgba(255, 255, 255, 0.4)';
+    }
+
+    // Reset other inputs (keep API key from localStorage)
+    if (sessionNameInput) sessionNameInput.value = '';
+    if (apiKeyInput) {
+        const savedKey = localStorage.getItem('openai_api_key');
+        apiKeyInput.value = savedKey || '';
+    }
+    if (jdInput) jdInput.value = '';
+    if (status) {
+        status.innerText = '';
+        status.style.color = '#aaa';
+    }
+
+    // Reset the start button to disabled state
+    if (sessionStartBtn) {
+        sessionStartBtn.disabled = false;
+        sessionStartBtn.style.opacity = '0.5';
+        sessionStartBtn.onclick = handleCreateSession;
+        if (typeof checkAllInputs === 'function') checkAllInputs();
+    }
+
+    // Clear transcript, response, and conversation areas
+    const transcriptArea = document.getElementById('transcript-area');
+    const responseArea = document.getElementById('response-area');
+    const conversationArea = document.getElementById('conversation-area');
+    const modelBadge = document.querySelector('.model-signature');
+    if (transcriptArea) transcriptArea.innerHTML = '';
+    if (responseArea) responseArea.innerHTML = '';
+    if (conversationArea) conversationArea.innerHTML = '';
+    if (modelBadge) modelBadge.remove();
+
+    // Reset timer display
+    const timerText = document.getElementById('session-timer-text');
+    if (timerText) timerText.innerText = '2:00:00';
+
+    const timerBox = document.getElementById('session-timer');
+    if (timerBox) {
+        timerBox.style.color = 'rgba(255,255,255,0.8)';
+        timerBox.style.borderColor = 'rgba(255,255,255,0.12)';
+        timerBox.style.background = 'rgba(255,255,255,0.03)';
+        timerBox.style.boxShadow = 'none';
+    }
+
+    // Reset session control buttons
+    const startBtn = document.getElementById('btn-session-start');
+    const stopBtn = document.getElementById('btn-session-stop');
+    const endBtn = document.getElementById('btn-session-end');
+    if (startBtn) startBtn.classList.remove('active');
+    if (stopBtn) stopBtn.classList.remove('paused');
+    if (endBtn) endBtn.classList.add('ended');
+
+    // Reset status indicator
+    const statusText = document.getElementById('status-text');
+    const statusDot = document.getElementById('status-dot');
+    if (statusText) statusText.innerText = 'Ready';
+    if (statusDot) statusDot.className = 'dot';
+
+    // Reset status bar metrics
+    const ttftEl = document.getElementById('response-time-ttft');
+    const ttEl = document.getElementById('response-time-tt');
+    const costEl = document.getElementById('session-cost');
+    if (ttftEl) ttftEl.innerText = '--s';
+    if (ttEl) ttEl.innerText = '--s';
+    if (costEl) costEl.innerText = '$0.00';
+
+    // Reset session state variables
+    window.isSessionActive = false;
+    sessionCreated = false;
+    sessionTimerStarted = false;
+    currentSessionName = null;
+    sessionEndTime = null;
+    sessionStartTimestamp = null;
+
+    // Show the setup overlay again
+    if (overlay) {
+        overlay.style.display = 'flex';
+    }
+
+    // Restore license badge if saved license exists
+    const savedLicenseKey = localStorage.getItem('valid_license_key');
+    const licenseBadge = document.getElementById('license-status-badge');
+    if (savedLicenseKey && licenseBadge) {
+        licenseBadge.textContent = 'Licensed';
+        licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
+        const licInput = document.getElementById('setup-license');
+        if (licInput) {
+            licInput.value = 'License Active';
+            licInput.disabled = true;
+        }
+    }
+}
+
 async function endSession() {
     if (!sessionCreated) return;
 
@@ -1382,118 +1521,7 @@ async function endSession() {
             timerInterval = null;
         }
 
-        // Reset usage for next session
-        fetch('http://127.0.0.1:5050/usage/reset', { method: 'POST' }).catch(() => { });
-
-        // Clear conversation history on backend
-        fetch('http://127.0.0.1:5050/conversation/clear', { method: 'POST' }).catch(() => { });
-
-        // Get DOM elements (they're not in scope, need to get them here)
-        const fileInput = document.getElementById('setup-resume');
-        const apiKeyInput = document.getElementById('setup-apikey');
-        const jdInput = document.getElementById('setup-jobdesc');
-        const sessionNameInput = document.getElementById('setup-session-name');
-        const status = document.getElementById('setup-status');
-        const sessionStartBtn = document.getElementById('btn-start-session');
-        const overlay = document.getElementById('setup-overlay');
-
-        // Reset file input
-        if (fileInput) {
-            fileInput.value = '';
-            fileInput.classList.remove('selected');
-        }
-
-        // Reset filename display
-        const resumeFilename = document.getElementById('resume-filename');
-        if (resumeFilename) {
-            resumeFilename.textContent = 'No file chosen';
-            resumeFilename.style.color = 'rgba(255, 255, 255, 0.4)';
-        }
-
-        // Reset other inputs (keep API key from localStorage)
-        if (sessionNameInput) sessionNameInput.value = '';
-        // Preserve API key - reload from localStorage instead of clearing
-        if (apiKeyInput) {
-            const savedKey = localStorage.getItem('openai_api_key');
-            apiKeyInput.value = savedKey || '';
-        }
-        if (jdInput) jdInput.value = '';
-        if (status) {
-            status.innerText = '';
-            status.style.color = '#aaa';
-        }
-
-        // Reset the start button to disabled state (original state)
-        if (sessionStartBtn) {
-            sessionStartBtn.disabled = false; // Allow re-enabling
-            sessionStartBtn.style.opacity = '0.5';
-            sessionStartBtn.onclick = handleCreateSession;
-            checkAllInputs(); // Re-evaluate button state based on empty fields
-        }
-
-        // Clear transcript, response, and conversation areas
-        const transcriptArea = document.getElementById('transcript-area');
-        const responseArea = document.getElementById('response-area');
-        const conversationArea = document.getElementById('conversation-area');
-        if (transcriptArea) transcriptArea.innerHTML = '';
-        if (responseArea) responseArea.innerHTML = '';
-        if (conversationArea) conversationArea.innerHTML = '';
-
-        // Reset timer display
-        const timerText = document.getElementById('session-timer-text');
-        if (timerText) timerText.innerText = '2:00:00';
-
-        // Reset timer colors
-        const timerBox = document.getElementById('session-timer');
-        if (timerBox) {
-            timerBox.style.color = 'rgba(255,255,255,0.8)';
-            timerBox.style.borderColor = 'rgba(255,255,255,0.12)';
-            timerBox.style.background = 'rgba(255,255,255,0.03)';
-            timerBox.style.boxShadow = 'none';
-        }
-
-        // Reset button states
-        const startBtn = document.getElementById('btn-session-start');
-        const stopBtn = document.getElementById('btn-session-stop');
-        const endBtn = document.getElementById('btn-session-end');
-        if (startBtn) startBtn.classList.remove('active');
-        if (stopBtn) stopBtn.classList.remove('paused');
-        if (endBtn) endBtn.classList.add('ended');
-
-        // Reset status text
-        const statusText = document.getElementById('status-text');
-        const statusDot = document.getElementById('status-dot');
-        if (statusText) statusText.innerText = 'Ready';
-        if (statusDot) statusDot.className = 'dot';
-
-        // Reset session state variables
-        sessionCreated = false;
-        sessionTimerStarted = false;
-        window.isSessionActive = false;
-        currentSessionName = null;
-        sessionEndTime = null;
-        sessionStartTimestamp = null;
-
-        // SHOW THE SETUP OVERLAY - this is what was missing!
-        if (overlay) {
-            overlay.style.display = 'flex';
-        }
-
-        // Restore license badge if saved license exists
-        const savedLicenseKey = localStorage.getItem('valid_license_key');
-        const licenseBadge = document.getElementById('license-status-badge');
-        if (savedLicenseKey && licenseBadge) {
-            licenseBadge.textContent = 'Licensed';
-            licenseBadge.style.color = 'rgba(100, 255, 150, 0.7)';
-            // Also restore the license input state
-            const licInput = document.getElementById('setup-license');
-            if (licInput) {
-                licInput.value = 'License Active';
-                licInput.disabled = true;
-                licInput.style.opacity = '0.5';
-                licInput.style.cursor = 'not-allowed';
-            }
-        }
+        resetSessionUI();
     }
 }
 
