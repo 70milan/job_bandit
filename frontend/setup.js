@@ -13,16 +13,28 @@ let isLicensed = false; // Track license status
 let sessionStartTimestamp = null; // Track when session started for duration calculation
 let backendReady = false; // Track if backend has finished starting
 
-// Helper to check demo cooldown remaining time (in minutes)
+// Helper to check demo cooldown remaining time (in ms)
 function getRemainingDemoCooldown() {
     const lastDemoTime = localStorage.getItem('last_demo_timestamp');
     if (!lastDemoTime) return 0;
 
     const elapsed = Date.now() - parseInt(lastDemoTime);
     if (elapsed < DEMO_COOLDOWN_MS) {
-        return Math.ceil((DEMO_COOLDOWN_MS - elapsed) / (60 * 1000));
+        return DEMO_COOLDOWN_MS - elapsed;
     }
     return 0;
+}
+
+// Helper to format ms into "X min and Y second(s)"
+function formatCooldownTime(ms) {
+    const totalSeconds = Math.ceil(ms / 1000);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+
+    if (mins > 0) {
+        return `${mins} min and ${secs} second(s)`;
+    }
+    return `${secs} second(s)`;
 }
 
 // License validation (Hardware-Locked)
@@ -736,16 +748,14 @@ window.openPastSession = async function (sessionName) {
 
         // Apply demo cooldown check for unlicensed users
         if (!isLicensed) {
-            const remainingMins = getRemainingDemoCooldown();
-            if (remainingMins > 0) {
-                status.innerText = `Demo cooldown active. Try again in ${remainingMins} min.`;
+            const remainingMs = getRemainingDemoCooldown();
+            if (remainingMs > 0) {
+                const timeStr = formatCooldownTime(remainingMs);
+                status.innerText = `Demo cooldown active. Try again in ${timeStr}.`;
                 status.style.color = "#ff4444";
-                customAlert(`Demo mode is restricted to once every 47 minutes.\n\nPlease wait ${remainingMins} more minutes or enter a license key for unlimited sessions.`);
+                customAlert(`Demo mode is restricted to once every 47 minutes (after a session ends).\n\nPlease wait ${timeStr} more or enter a license key for unlimited sessions.`);
                 return;
             }
-            // Update last demo timestamp since they are resuming a demo session
-            localStorage.setItem('last_demo_timestamp', Date.now().toString());
-            console.log('[DEBUG] Demo mode timestamp updated (past session)');
         }
 
         SESSION_DURATION_MS = isLicensed ? FULL_SESSION_DURATION_MS : DEMO_SESSION_DURATION_MS;
@@ -1119,11 +1129,12 @@ async function handleCreateSession() {
         } else {
             // Demo mode - no license provided
             // Check for demo cooldown
-            const remainingMins = getRemainingDemoCooldown();
-            if (remainingMins > 0) {
-                status.innerText = `Demo cooldown active. Try again in ${remainingMins} min.`;
+            const remainingMs = getRemainingDemoCooldown();
+            if (remainingMs > 0) {
+                const timeStr = formatCooldownTime(remainingMs);
+                status.innerText = `Demo cooldown active. Try again in ${timeStr}.`;
                 status.style.color = "#ff4444";
-                customAlert(`Demo mode is restricted to once every 47 minutes.\n\nPlease wait ${remainingMins} more minutes or enter a license key for unlimited sessions.`);
+                customAlert(`Demo mode is restricted to once every 47 minutes (after a session ends).\n\nPlease wait ${timeStr} more or enter a license key for unlimited sessions.`);
                 return;
             }
 
@@ -1156,12 +1167,6 @@ async function handleCreateSession() {
         }
 
         currentSessionName = sanitizedSessionName;
-
-        // If demo, mark the timestamp now that creation actually started
-        if (!isLicensed) {
-            localStorage.setItem('last_demo_timestamp', Date.now().toString());
-            console.log('[DEBUG] Demo mode timestamp updated');
-        }
 
         // 1. Validate API Key
         status.innerText = "Validating API key...";
@@ -1493,6 +1498,13 @@ function resetSessionUI() {
             licInput.value = 'License Active';
             licInput.disabled = true;
         }
+    }
+
+    // Set demo cooldown timestamp ONLY IF NOT LICENSED
+    // This starts the 47-min timer exactly when the session ends
+    if (!isLicensed) {
+        localStorage.setItem('last_demo_timestamp', Date.now().toString());
+        console.log('[DEBUG] Demo cooldown started');
     }
 }
 
