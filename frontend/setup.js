@@ -1259,48 +1259,22 @@ async function startSessionTimer() {
         if (remaining <= 0) {
             clearInterval(timerInterval);
             timerInterval = null;
-            timerText.innerText = `0:00:00`;
-            // Reset timer colors
-            const timerBox = document.getElementById('session-timer');
-            if (timerBox) {
-                timerBox.style.color = 'rgba(255,255,255,0.8)';
-                timerBox.style.borderColor = 'rgba(255,255,255,0.12)';
-                timerBox.style.background = 'rgba(255,255,255,0.03)';
-                timerBox.style.boxShadow = 'none';
-            }
+
+            // 5-minute Demo and 2-hour Licensed sessions both expire here.
+            resetSessionUI();
+
             if (isLicensed) {
-                // Completely end the session so the system resets it properly
-                window.isSessionActive = false;
-                sessionCreated = false;
-                sessionTimerStarted = false;
-                currentSessionName = null;
-                sessionStartTimestamp = null;
-                sessionEndTime = null;
-
-                const startBtn = document.getElementById('btn-session-start');
-                if (startBtn) {
-                    startBtn.classList.remove('active');
-                }
-
                 customAlert('Session time expired! (2 hours)\n\nThe current session has been closed. Please create a new session.');
-                statusText.innerText = 'Session Expired';
-
-                // Show the setup overlay again
-                const overlay = document.getElementById('setup-overlay');
-                if (overlay) {
-                    overlay.style.display = 'flex';
-                }
+                const statusText = document.getElementById('status-text');
+                if (statusText) statusText.innerText = 'Session Expired';
             } else {
                 // Demo expired - show license prompt
                 showLicensePrompt();
-                statusText.innerText = 'Demo Expired';
+                const statusText = document.getElementById('status-text');
+                if (statusText) statusText.innerText = 'Demo Expired';
             }
-            stopBtn.classList.add('paused');
-            startBtn.classList.remove('active');
-            if (statusDot) statusDot.className = 'dot';
             return;
         }
-
         const hours = Math.floor(remaining / (1000 * 60 * 60));
         const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
