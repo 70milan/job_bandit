@@ -119,3 +119,4 @@ backend/main_test.py
 commit_and_push.bat
 generate_keys_force.py
 key_gen.py
+backend/generate_license.py

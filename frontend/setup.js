@@ -259,7 +259,7 @@ function initSession() {
             if (fileInput.files && fileInput.files.length > 0) {
                 console.log('[DEBUG] Selected file:', fileInput.files[0].name);
                 resumeFilename.textContent = fileInput.files[0].name;
-                resumeFilename.style.color = 'rgba(100, 255, 150, 0.9)';
+                resumeFilename.style.color = 'rgba(255, 255, 255, 0.6)';
                 if (detachBtn) detachBtn.style.display = 'inline-block';
             } else {
                 resumeFilename.textContent = 'No file chosen';
@@ -720,7 +720,7 @@ window.openPastSession = async function (sessionName) {
         }
 
         status.innerText = 'Validating API key...';
-        status.style.color = '#aaa';
+        status.style.color = 'rgba(100, 255, 150, 0.9)';
 
         const validateRes = await fetch('http://127.0.0.1:5050/validate-api-key', {
             method: 'POST',
@@ -752,8 +752,7 @@ window.openPastSession = async function (sessionName) {
             if (remainingMs > 0) {
                 const timeStr = formatCooldownTime(remainingMs);
                 status.innerText = `Demo cooldown active. Try again in ${timeStr}.`;
-                status.style.color = "#ff4444";
-                customAlert(`Demo mode is restricted to once every 47 minutes (after a session ends).\n\nPlease wait ${timeStr} more or enter a license key for unlimited sessions.`);
+                status.style.color = "rgba(255, 107, 107, 0.7)";
                 return;
             }
         }
@@ -762,6 +761,7 @@ window.openPastSession = async function (sessionName) {
 
         // Load session data from backend
         status.innerText = 'Loading session...';
+        status.style.color = 'rgba(100, 255, 150, 0.9)';
         const loadRes = await fetch(`http://127.0.0.1:5050/session/load/${encodeURIComponent(sessionName)}`);
         const sessionData = await loadRes.json();
 
@@ -1049,22 +1049,16 @@ async function handleCreateSession() {
     const sessionName = sessionNameInput ? sessionNameInput.value.trim() : '';
     console.log('[DEBUG] Session name:', sessionName);
 
-    // Helper to show validation toast
-    function showValidationError(msg) {
-        const errorPopup = document.getElementById('session-error-popup');
-        if (errorPopup) {
-            errorPopup.textContent = msg;
-            errorPopup.style.display = 'block';
-            errorPopup.style.opacity = '1';
-            setTimeout(() => {
-                errorPopup.style.opacity = '0';
-                setTimeout(() => errorPopup.style.display = 'none', 200);
-            }, 3000);
+    // Helper to show validation status
+    function showStatus(msg, isError = true) {
+        if (status) {
+            status.innerText = msg;
+            status.style.color = isError ? "rgba(255, 107, 107, 0.7)" : "rgba(100, 255, 150, 0.6)";
         }
     }
 
     if (!sessionName) {
-        showValidationError('Session name is required');
+        showStatus('Session name is required');
         return;
     }
 
@@ -1072,18 +1066,18 @@ async function handleCreateSession() {
     const sanitizedSessionName = sessionName.replace(/[<>:"/\\|?*]/g, '_');
 
     if (!fileInput.files || fileInput.files.length === 0) {
-        showValidationError('Resume is required');
+        showStatus('Resume is required');
         return;
     }
 
     const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
     if (!apiKey) {
-        showValidationError('API key is required');
+        showStatus('API key is required');
         return;
     }
 
     if (!jdInput.value.trim()) {
-        showValidationError('Job Description is required');
+        showStatus('Job Description is required');
         return;
     }
 
@@ -1096,8 +1090,7 @@ async function handleCreateSession() {
         isLicensed = true;
         SESSION_DURATION_MS = FULL_SESSION_DURATION_MS;
         console.log('[DEBUG] Using saved license - Full 2-hour session');
-        status.innerText = "License validated - Full session";
-        status.style.color = "rgba(100, 255, 150, 0.9)";
+        showStatus("License validated - Full session", false);
     } else {
         // No saved license - check what user entered
         const licenseKey = licenseInput ? licenseInput.value.trim() : '';
@@ -1105,15 +1098,9 @@ async function handleCreateSession() {
         const licenseStatus = await validateLicense(licenseKey);
         console.log('[DEBUG] License status:', licenseStatus);
 
-        // License validation logic:
-        // 1. Empty = demo mode (5 min)
-        // 2. Valid = full session (2hrs) + save to localStorage
-        // 3. Invalid/partial = error, don't proceed
-
         if (licenseKey && licenseStatus === 'invalid') {
             // User entered something but it's wrong - show error and stop
-            status.innerText = "Please enter a valid license key";
-            status.style.color = "#ff4444";
+            showStatus("Please enter a valid license key");
             return;
         }
 
@@ -1124,25 +1111,22 @@ async function handleCreateSession() {
             console.log('[DEBUG] Licensed: Full 2-hour session');
             // Save valid license to localStorage - never ask again
             localStorage.setItem('valid_license_key', licenseKey);
-            status.innerText = "License validated - Full session";
-            status.style.color = "rgba(100, 255, 150, 0.9)";
+            showStatus("License validated - Full session", false);
         } else {
             // Demo mode - no license provided
             // Check for demo cooldown
             const remainingMs = getRemainingDemoCooldown();
             if (remainingMs > 0) {
                 const timeStr = formatCooldownTime(remainingMs);
-                status.innerText = `Demo cooldown active. Try again in ${timeStr}.`;
-                status.style.color = "#ff4444";
-                customAlert(`Demo mode is restricted to once every 47 minutes (after a session ends).\n\nPlease wait ${timeStr} more or enter a license key for unlimited sessions.`);
+                showStatus(`Demo cooldown active. Try again in ${timeStr}.`);
                 return;
             }
 
             isLicensed = false;
             SESSION_DURATION_MS = DEMO_SESSION_DURATION_MS;
             console.log('Demo: 5-minute session');
-            status.innerText = "Demo: 5-minute session";
-            status.style.color = "rgba(228, 147, 61, 0.9)";
+            showStatus("Demo: 5-minute session", false);
+            if (status) status.style.color = "rgba(228, 147, 61, 0.6)"; // Muted orange for demo
         }
     }
 
@@ -1151,10 +1135,10 @@ async function handleCreateSession() {
 
     try {
         startBtn.disabled = true;
-        status.style.color = "#aaa";
+        if (status) status.style.color = "#aaa";
 
         // 0. Create session folder first
-        status.innerText = "Creating session...";
+        showStatus("Creating session...", false);
         const createSessionRes = await fetch('http://127.0.0.1:5050/session/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
