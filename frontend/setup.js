@@ -494,9 +494,9 @@ function initSession() {
                 return;
             }
 
-            let exportText = `Conversation Export: ${currentSessionName || 'Session'}\n`;
-            exportText += `Exported At: ${new Date().toLocaleString()}\n`;
-            exportText += `=================================================\n\n`;
+            let exportText = `# Conversation Export: ${currentSessionName || 'Session'}\n`;
+            exportText += `**Exported At:** ${new Date().toLocaleString()}\n\n`;
+            exportText += `---\n\n`;
 
             Array.from(convoArea.children).forEach(child => {
                 const ts = child.dataset.timestamp ? new Date(child.dataset.timestamp).toLocaleTimeString() : '';
@@ -506,28 +506,26 @@ function initSession() {
                 if (qDiv) {
                     // Extract text but remove the "Input HH:MM:SS" header
                     let qText = qDiv.innerText.replace(/^Input(\s+\d{1,2}:\d{2}:\d{2}\s*(AM|PM)?)?/i, '').trim();
-                    exportText += `[USER] ${ts ? '(' + ts + ')' : ''}\n${qText}\n\n`;
+                    exportText += `### User ${ts ? '*(' + ts + ')*' : ''}\n\n${qText}\n\n`;
                 }
 
                 if (aDiv) {
-                    // Extract text but remove the "AI (MODEL) [TIME] HH:MM:SS" header
-                    // We can just get the innerText and remove lines that look like headers, or just strip the first line if it's the header
-                    // A safer way is to split by newline and remove the first line which is the header
                     let lines = aDiv.innerText.split('\n');
+                    let aiHeader = 'AI';
                     if (lines.length > 0 && lines[0].startsWith('AI')) {
-                        lines.shift();
+                        aiHeader = lines.shift().replace(/(\s+\d{1,2}:\d{2}:\d{2}\s*(AM|PM)?)?$/i, '').trim();
                     }
                     let aText = lines.join('\n').trim();
-                    exportText += `[AI] ${ts ? '(' + ts + ')' : ''}\n${aText}\n\n`;
+                    exportText += `### ${aiHeader} ${ts ? '*(' + ts + ')*' : ''}\n\n${aText}\n\n`;
                 }
 
-                exportText += `-------------------------------------------------\n\n`;
+                exportText += `---\n\n`;
             });
 
             if (typeof require !== 'undefined') {
                 const { ipcRenderer } = require('electron');
                 try {
-                    const defaultName = `Conversation_${currentSessionName ? currentSessionName.replace(/[^a-z0-9]/gi, '_') : Date.now()}.txt`;
+                    const defaultName = `Conversation_${currentSessionName ? currentSessionName.replace(/[^a-z0-9]/gi, '_') : Date.now()}.md`;
                     const result = await ipcRenderer.invoke('export-conversation', exportText, defaultName);
                     if (result && result.success) {
                         console.log('Exported to:', result.filePath);
@@ -540,11 +538,11 @@ function initSession() {
                 }
             } else {
                 // Fallback for non-Electron environment
-                const blob = new Blob([exportText], { type: 'text/plain' });
+                const blob = new Blob([exportText], { type: 'text/markdown' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Conversation_${currentSessionName ? currentSessionName.replace(/[^a-z0-9]/gi, '_') : Date.now()}.txt`;
+                a.download = `Conversation_${currentSessionName ? currentSessionName.replace(/[^a-z0-9]/gi, '_') : Date.now()}.md`;
                 a.click();
                 URL.revokeObjectURL(url);
             }
