@@ -11,10 +11,11 @@ window.formatConvoText = function (text) {
     // Normalize line endings
     formatted = formatted.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    // Fenced code blocks: ```lang\n...\n```
-    formatted = formatted.replace(/`{3,}\s*(\w+)?\s*\n([\s\S]*?)\n\s*`{3,}/g, (match, lang, code) => {
+    // Fenced code blocks: ```lang\n...\n``` (lenient: handles GPT-5 formatting variations)
+    formatted = formatted.replace(/`{3,}\s*(\w+)?\s*\n([\s\S]*?)\n?\s*`{3,}/g, (match, lang, code) => {
         const language = lang || 'plaintext';
-        const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const trimmedCode = code.replace(/^\n+|\n+$/g, '');
+        const escapedCode = trimmedCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const placeholder = `___CONVO_CODE_${codeBlocks.length}___`;
         codeBlocks.push(`<pre style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:8px;margin:4px 0;overflow-x:auto;"><code class="language-${language}" style="font-size:10px;line-height:1.3;">${escapedCode}</code></pre>`);
         return placeholder;
@@ -209,10 +210,11 @@ function initializeStreamingAI() {
             formattedResponse = formattedResponse.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
             // Match fenced code blocks: 3+ backticks, optional language, content, closing backticks
-            // Handles: ```python\n...\n```, ``` python \n...\n  ```, ````python\n...\n````
-            formattedResponse = formattedResponse.replace(/`{3,}\s*(\w+)?\s*\n([\s\S]*?)\n\s*`{3,}/g, (match, lang, code) => {
+            // Lenient regex: handles GPT-5 variations (no trailing newline, extra whitespace)
+            formattedResponse = formattedResponse.replace(/`{3,}\s*(\w+)?\s*\n([\s\S]*?)\n?\s*`{3,}/g, (match, lang, code) => {
                 const language = lang || 'plaintext';
-                const escapedCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const trimmedCode = code.replace(/^\n+|\n+$/g, '');
+                const escapedCode = trimmedCode.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
                 codeBlocks.push(`<pre><code class="language-${language}">${escapedCode}</code></pre>`);
                 return placeholder;
@@ -237,11 +239,12 @@ function initializeStreamingAI() {
 
             responseArea.innerHTML = formattedResponse;
 
-            // Add styled model badge after formatted HTML
+            // Add styled model badge in footer, right-aligned
             if (usedModel) {
                 const modelBadge = document.createElement('div');
-                modelBadge.style.cssText = 'margin-top: 20px; padding: 6px 10px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; letter-spacing: 0.5px;';
-                modelBadge.innerHTML = '<span style="color: #EEFF00; font-weight: 600;">Model Used: </span><span style="color: #FF6D00; font-weight: 600;">' + usedModel + '</span>';
+                modelBadge.style.cssText = 'margin-top: 20px; padding: 6px 10px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; letter-spacing: 0.5px; text-align: right;';
+                const displayModel = usedModel.replace(/\bgpt\b/gi, 'GPT');
+                modelBadge.innerHTML = '<span style="color: #EEFF00; font-weight: 600;">Model Used: </span><span style="color: #FF6D00; font-weight: 600;">' + displayModel + '</span>';
                 responseArea.appendChild(modelBadge);
             }
 
@@ -260,12 +263,15 @@ function initializeStreamingAI() {
                 pairDiv.style.cssText = 'border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; padding: 8px; background: rgba(255,255,255,0.02);';
                 pairDiv.dataset.cost = responseCost || 0;
                 pairDiv.dataset.responseTime = ttft || 0;
+                pairDiv.dataset.timestamp = new Date().toISOString();
 
                 // Input (transcript/question)
                 const inputText = transcript || '(screenshot analysis)';
+                const entryTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
                 const qDiv = document.createElement('div');
                 qDiv.style.cssText = 'color: #bbb; font-size: 11px; line-height: 1.4; margin-bottom: 6px; padding: 4px 8px; border-left: 2px solid #666; border-radius: 2px;';
-                qDiv.innerHTML = '<strong style="color: rgba(255,255,255,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Input</strong><br>' + inputText.substring(0, 200) + (inputText.length > 200 ? '...' : '');
+                const formattedInput = window.formatConvoText ? window.formatConvoText(inputText) : inputText.substring(0, 200);
+                qDiv.innerHTML = '<strong style="color: rgba(255,255,255,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Input</strong> <span style="color: rgba(255,255,255,0.25); font-size: 9px;">' + entryTime + '</span><br>' + formattedInput;
                 pairDiv.appendChild(qDiv);
 
                 // AI response (truncated for readability)
@@ -277,7 +283,7 @@ function initializeStreamingAI() {
                 if (usedModel) aiLabel += ' (' + usedModel + ')';
                 if (ttft) aiLabel += ' (' + ttft.toFixed(1) + 's)';
                 const formattedConvo = window.formatConvoText ? window.formatConvoText(cleanResponse) : cleanResponse.substring(0, 300);
-                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong><br>' + formattedConvo;
+                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong> <span style="color: rgba(255,255,255,0.25); font-size: 9px;">' + entryTime + '</span><br>' + formattedConvo;
                 pairDiv.appendChild(rDiv);
 
                 // Highlight code blocks in conversation entry

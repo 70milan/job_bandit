@@ -401,13 +401,24 @@ function initSession() {
                 if (data.sessions && data.sessions.length > 0) {
                     // Show most recent sessions first
                     const sorted = data.sessions.slice().reverse();
-                    listContainer.innerHTML = sorted.map(session => `
+                    listContainer.innerHTML = sorted.map(session => {
+                        // Format the timestamp nicely
+                        let formattedDate = session.created_at || 'No date';
+                        if (session.created_at) {
+                            try {
+                                const d = new Date(session.created_at);
+                                if (!isNaN(d.getTime())) {
+                                    formattedDate = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                }
+                            } catch (e) { /* keep original */ }
+                        }
+                        return `
                         <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 12px; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;" 
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.03)'">
                             <div style="flex: 1; cursor: pointer;" onclick="window.openPastSession('${session.name.replace(/'/g, "\\'")}')"> 
                                 <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-bottom: 4px;">${session.name}</div>
-                                <div style="color: rgba(255,255,255,0.4); font-size: 10px;">${session.created_at || 'No date'}</div>
+                                <div style="color: rgba(255,255,255,0.4); font-size: 10px;">${formattedDate}</div>
                                 <div style="color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${session.job_description_preview || ''}</div>
                             </div>
                             <button onclick="event.stopPropagation(); window.deletePastSession('${session.name.replace(/'/g, "\\\\'")}')" 
@@ -416,7 +427,8 @@ function initSession() {
                                     onmouseout="this.style.color='rgba(255,255,255,0.3)'; this.style.borderColor='rgba(255,255,255,0.08)'; this.style.background='none';"
                                     title="Delete session">TRASH</button>
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
                 } else {
                     listContainer.innerHTML = '<div style="color: rgba(255,255,255,0.4); font-size: 12px; text-align: center; padding: 20px;">No past sessions found</div>';
                 }
@@ -492,9 +504,43 @@ function initSession() {
             // Copy entries from hidden data container into modal
             modalList.innerHTML = '';
             let totalCost = 0;
+            let lastDateStr = '';
             if (convoArea && convoArea.children.length > 0) {
                 Array.from(convoArea.children).forEach(child => {
-                    modalList.appendChild(child.cloneNode(true));
+                    // Insert date separator if date changes (date only, no time)
+                    const ts = child.dataset.timestamp;
+                    if (ts) {
+                        try {
+                            const d = new Date(ts);
+                            const dayStr = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+                            if (dayStr !== lastDateStr) {
+                                lastDateStr = dayStr;
+                                const separator = document.createElement('div');
+                                separator.style.cssText = 'text-align: center; padding: 6px 0; margin: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06);';
+                                separator.innerHTML = '<span style="color: rgba(255,255,255,0.6); font-size: 10px; letter-spacing: 1px; font-weight: 500;">' + dayStr + '</span>';
+                                modalList.appendChild(separator);
+                            }
+                        } catch (e) { /* skip separator */ }
+                    }
+
+                    const cloned = child.cloneNode(true);
+
+                    // Add [Copy] button to this pair
+                    const copyBtn = document.createElement('div');
+                    copyBtn.style.cssText = 'text-align: right; margin-top: 4px;';
+                    copyBtn.innerHTML = '<span style="color: rgba(255,255,255,0.3); font-size: 9px; cursor: pointer; letter-spacing: 0.5px; transition: color 0.2s;" onmouseover="this.style.color=\'rgba(100,255,150,0.7)\'" onmouseout="this.style.color=\'rgba(255,255,255,0.3)\'">[Copy]</span>';
+                    copyBtn.querySelector('span').onclick = function () {
+                        const pair = this.closest('div[data-cost]') || this.parentElement.parentElement;
+                        const text = pair.innerText.replace(/\[Copy\]$/i, '').trim();
+                        navigator.clipboard.writeText(text).then(() => {
+                            this.textContent = '[Copied!]';
+                            this.style.color = 'rgba(100,255,150,0.8)';
+                            setTimeout(() => { this.textContent = '[Copy]'; this.style.color = 'rgba(255,255,255,0.3)'; }, 1200);
+                        });
+                    };
+                    cloned.appendChild(copyBtn);
+
+                    modalList.appendChild(cloned);
                     totalCost += parseFloat(child.dataset.cost || 0);
                 });
             } else {
@@ -634,8 +680,24 @@ window.openPastSession = async function (sessionName) {
         if (historyList) historyList.innerHTML = '';
 
         // Populate history entries
+        let lastHistoryDateStr = '';
         if (sessionData.history && Array.isArray(sessionData.history) && sessionData.history.length > 0) {
             sessionData.history.forEach((entry, idx) => {
+                // Insert date separator if date changes (date only, no time)
+                if (entry.timestamp) {
+                    try {
+                        const d = new Date(entry.timestamp);
+                        const dayStr = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+                        if (dayStr !== lastHistoryDateStr) {
+                            lastHistoryDateStr = dayStr;
+                            const separator = document.createElement('div');
+                            separator.style.cssText = 'text-align: center; padding: 6px 0; margin: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06);';
+                            separator.innerHTML = '<span style="color: rgba(255,255,255,0.6); font-size: 10px; letter-spacing: 1px; font-weight: 500;">' + dayStr + '</span>';
+                            historyList.appendChild(separator);
+                        }
+                    } catch (e) { /* skip separator */ }
+                }
+
                 const pairDiv = document.createElement('div');
                 pairDiv.style.cssText = 'border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 12px; background: rgba(255,255,255,0.02);';
 
@@ -645,24 +707,47 @@ window.openPastSession = async function (sessionName) {
                 numLabel.textContent = `Exchange ${idx + 1}` + (entry.timestamp ? ` — ${new Date(entry.timestamp).toLocaleTimeString()}` : '');
                 pairDiv.appendChild(numLabel);
 
-                // User question
+                // User question (with code formatting)
                 if (entry.question) {
                     const qDiv = document.createElement('div');
                     qDiv.style.cssText = 'color: #ccc; font-size: 12px; line-height: 1.5; margin-bottom: 8px; padding: 6px 10px; background: rgba(255,255,255,0.03); border-left: 2px solid #888; border-radius: 3px;';
-                    qDiv.innerHTML = `<strong style="color: rgba(255,255,255,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Input</strong><br>${entry.question}`;
+                    const formattedQ = window.formatConvoText ? window.formatConvoText(entry.question) : entry.question;
+                    const entryTimeQ = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+                    qDiv.innerHTML = `<strong style="color: rgba(255,255,255,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Input</strong>` + (entryTimeQ ? ` <span style="color: rgba(255,255,255,0.25); font-size: 9px;">${entryTimeQ}</span>` : '') + `<br>${formattedQ}`;
                     pairDiv.appendChild(qDiv);
+                    // Highlight code blocks in question
+                    qDiv.querySelectorAll('pre code').forEach(block => { if (typeof hljs !== 'undefined') hljs.highlightElement(block); });
                 }
 
-                // AI response
+                // AI response (with code formatting)
                 if (entry.response) {
                     const rDiv = document.createElement('div');
                     rDiv.style.cssText = 'color: #eee; font-size: 12px; line-height: 1.5; padding: 6px 10px; background: rgba(100,255,150,0.03); border-left: 2px solid rgba(100,255,150,0.5); border-radius: 3px; max-height: 150px; overflow-y: auto;';
                     let aiLabel = 'AI';
                     if (entry.model) aiLabel += ' (' + entry.model + ')';
                     if (entry.response_time) aiLabel += ' (' + entry.response_time + 's)';
-                    rDiv.innerHTML = `<strong style="color: rgba(100,255,150,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">${aiLabel}</strong><br>${entry.response}`;
+                    const formattedR = window.formatConvoText ? window.formatConvoText(entry.response) : entry.response;
+                    const entryTimeR = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+                    rDiv.innerHTML = `<strong style="color: rgba(100,255,150,0.5); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">${aiLabel}</strong>` + (entryTimeR ? ` <span style="color: rgba(255,255,255,0.25); font-size: 9px;">${entryTimeR}</span>` : '') + `<br>${formattedR}`;
                     pairDiv.appendChild(rDiv);
+                    // Highlight code blocks in response
+                    rDiv.querySelectorAll('pre code').forEach(block => { if (typeof hljs !== 'undefined') hljs.highlightElement(block); });
                 }
+
+                // [Copy] button for this pair
+                const copyBtn = document.createElement('div');
+                copyBtn.style.cssText = 'text-align: right; margin-top: 4px;';
+                copyBtn.innerHTML = '<span style="color: rgba(255,255,255,0.3); font-size: 9px; cursor: pointer; letter-spacing: 0.5px; transition: color 0.2s;" onmouseover="this.style.color=\'rgba(100,255,150,0.7)\'" onmouseout="this.style.color=\'rgba(255,255,255,0.3)\'">[Copy]</span>';
+                copyBtn.querySelector('span').onclick = function () {
+                    const pair = this.parentElement.parentElement;
+                    const text = pair.innerText.replace(/\[Copy\]$/i, '').trim();
+                    navigator.clipboard.writeText(text).then(() => {
+                        this.textContent = '[Copied!]';
+                        this.style.color = 'rgba(100,255,150,0.8)';
+                        setTimeout(() => { this.textContent = '[Copy]'; this.style.color = 'rgba(255,255,255,0.3)'; }, 1200);
+                    });
+                };
+                pairDiv.appendChild(copyBtn);
 
                 historyList.appendChild(pairDiv);
             });
@@ -765,12 +850,17 @@ window.openPastSession = async function (sessionName) {
                             pairDiv.style.cssText = 'border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; padding: 8px; background: rgba(255,255,255,0.02);';
                             pairDiv.dataset.cost = entry.cost || 0;
                             pairDiv.dataset.responseTime = entry.response_time || 0;
+                            pairDiv.dataset.timestamp = entry.timestamp || '';
 
                             if (entry.question) {
                                 const qDiv = document.createElement('div');
                                 qDiv.style.cssText = 'color: #bbb; font-size: 11px; line-height: 1.4; margin-bottom: 6px; padding: 4px 8px; border-left: 2px solid #666; border-radius: 2px;';
-                                qDiv.innerHTML = '<strong style="color: rgba(255,255,255,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Input</strong><br>' + entry.question.substring(0, 200) + (entry.question.length > 200 ? '...' : '');
+                                const formattedQ = window.formatConvoText ? window.formatConvoText(entry.question) : entry.question.substring(0, 200);
+                                const entryTimeQ = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+                                qDiv.innerHTML = '<strong style="color: rgba(255,255,255,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">Input</strong>' + (entryTimeQ ? ' <span style="color: rgba(255,255,255,0.25); font-size: 9px;">' + entryTimeQ + '</span>' : '') + '<br>' + formattedQ;
                                 pairDiv.appendChild(qDiv);
+                                // Highlight code blocks in question
+                                qDiv.querySelectorAll('pre code').forEach(block => { if (typeof hljs !== 'undefined') hljs.highlightElement(block); });
                             }
 
                             if (entry.response) {
@@ -780,7 +870,8 @@ window.openPastSession = async function (sessionName) {
                                 if (entry.model) aiLabel += ' (' + entry.model + ')';
                                 if (entry.response_time) aiLabel += ' (' + entry.response_time + 's)';
                                 const formattedConvo = window.formatConvoText ? window.formatConvoText(entry.response) : entry.response.substring(0, 300);
-                                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong><br>' + formattedConvo;
+                                const entryTimeR = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+                                rDiv.innerHTML = '<strong style="color: rgba(100,255,150,0.4); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;">' + aiLabel + '</strong>' + (entryTimeR ? ' <span style="color: rgba(255,255,255,0.25); font-size: 9px;">' + entryTimeR + '</span>' : '') + '<br>' + formattedConvo;
                                 pairDiv.appendChild(rDiv);
 
                                 // Highlight code blocks
