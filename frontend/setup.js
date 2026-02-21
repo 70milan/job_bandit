@@ -320,11 +320,14 @@ function initSession() {
     const savedLicense = localStorage.getItem('valid_license_key');
     const licenseBadge = document.getElementById('license-status-badge');
 
+    const demoInfoText = document.getElementById('demo-info-text');
+
     if (savedLicense) {
         (async () => {
             const status = await validateLicense(savedLicense);
             if (status === 'valid') {
                 isLicensed = true;
+                if (demoInfoText) demoInfoText.style.display = 'none';
                 if (licenseInput) {
                     licenseInput.value = 'License Active';
                     licenseInput.disabled = true;
@@ -344,10 +347,12 @@ function initSession() {
                     licenseBadge.textContent = 'Demo';
                     licenseBadge.style.color = 'rgba(255, 200, 100, 0.4)';
                 }
+                if (demoInfoText) demoInfoText.style.display = 'block';
             } else {
                 // Backend unreachable ('empty') - preserve license, assume still valid
                 console.log('[DEBUG] Backend not ready yet - preserving saved license');
                 isLicensed = true;
+                if (demoInfoText) demoInfoText.style.display = 'none';
                 if (licenseInput) {
                     licenseInput.value = 'License Active';
                     licenseInput.disabled = true;
@@ -366,6 +371,7 @@ function initSession() {
             licenseBadge.textContent = 'Demo';
             licenseBadge.style.color = 'rgba(255, 200, 100, 0.4)';
         }
+        if (demoInfoText) demoInfoText.style.display = 'block';
     }
 
     const endBtn = document.getElementById('btn-session-end');
@@ -746,6 +752,9 @@ window.openPastSession = async function (sessionName) {
             isLicensed = (licenseStatus === 'valid');
         }
 
+        const demoInfoText = document.getElementById('demo-info-text');
+        if (isLicensed && demoInfoText) demoInfoText.style.display = 'none';
+
         // Apply demo cooldown check for unlicensed users
         if (!isLicensed) {
             const remainingMs = getRemainingDemoCooldown();
@@ -1112,6 +1121,8 @@ async function handleCreateSession() {
             // Save valid license to localStorage - never ask again
             localStorage.setItem('valid_license_key', licenseKey);
             showStatus("License validated - Full session", false);
+            const demoInfoText = document.getElementById('demo-info-text');
+            if (demoInfoText) demoInfoText.style.display = 'none';
         } else {
             // Demo mode - no license provided
             // Check for demo cooldown
@@ -1482,6 +1493,8 @@ function resetSessionUI() {
             licInput.value = 'License Active';
             licInput.disabled = true;
         }
+        const demoInfoText = document.getElementById('demo-info-text');
+        if (demoInfoText) demoInfoText.style.display = 'none';
     }
 
     // Set demo cooldown timestamp ONLY IF NOT LICENSED
