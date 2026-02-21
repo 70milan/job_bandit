@@ -22,6 +22,7 @@
 - **User Story 2.4:** As a user, I want the session status indicator to proactively test the connection, turning green immediately when connected and red if the backend is unreachable.
 - **User Story 5.10:** As a user, I want the "Model Used" indicator to look like a clean footprint signature fixed to the bottom-right of the AI response to track the model used inconspicuously. *(Fixed absolute positioning bug where the footer would overlap with long AI responses by moving it to an inline block with frosted styling)*
 - **User Story 5.11:** As a user, I want the "Cumulative API Cost" label in the past sessions modal to retain the word "Cumulative" while matching the minimalist aesthetic of the main app, using muted soft colors instead of bright yellow.
+- **User Story 5.12:** As a user, I want a minimalist export button in the conversation history modal to download the entire chat log to a user-specified text file. 
 - **User Story 1.2:** As a user, I want the response times for GPT-5 and higher reasoning models to be optimized for interview flow. *(Updated stream pipeline to calculate and display both Time-to-First-Token (TTFT) and Total Response Time in the UI footprint and conversation history, formatted securely as `(1.8s START / 1.9s TOTAL)`)*
 
 ## Pending
