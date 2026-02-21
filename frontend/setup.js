@@ -556,7 +556,7 @@ function initSession() {
                     } else {
                         costText = '$' + totalCost.toFixed(2);
                     }
-                    costFooter.innerHTML = '<span style="color: #EEFF00;">Cumulative API Cost:</span> <span style="color: #FF6D00; font-weight: 600;">' + costText + '</span>';
+                    costFooter.innerHTML = '<span style="color: rgba(255, 255, 255, 0.4); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">API Cost:</span> <span style="color: rgba(120, 200, 180, 0.85); font-weight: 500; font-size: 11px;">' + costText + '</span>';
                     costFooter.style.display = 'block';
                 } else {
                     costFooter.style.display = 'none';
