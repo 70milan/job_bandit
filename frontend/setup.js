@@ -874,7 +874,7 @@ window.openPastSession = async function (sessionName) {
                                 let aiLabel = 'AI';
                                 if (entry.model) aiLabel += ' (' + entry.model + ')';
                                 if (entry.response_time > 0 && entry.total_time > 0) {
-                                    aiLabel += ` [${entry.response_time}s start / ${entry.total_time}s total]`;
+                                    aiLabel += ` [${entry.response_time}s START / ${entry.total_time}s TOTAL]`;
                                 } else if (entry.response_time) {
                                     aiLabel += ` [${entry.response_time}s]`;
                                 }

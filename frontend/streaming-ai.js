@@ -266,10 +266,10 @@ function initializeStreamingAI() {
             if (usedModel) {
                 const modelBadge = document.createElement('div');
                 modelBadge.className = 'model-signature';
-                const displayModel = usedModel.replace(/\bgpt\b/gi, 'GPT');
+                const displayModel = usedModel.replace(/\bgpt\b/gi, 'GPT').toUpperCase();
                 let timeString = '';
                 if (ttft > 0 && totalTime > 0) {
-                    timeString = ` (${ttft.toFixed(1)}s start / ${totalTime.toFixed(1)}s total)`;
+                    timeString = ` (${ttft.toFixed(1)}s START / ${totalTime.toFixed(1)}s TOTAL)`;
                 } else if (ttft > 0) {
                     timeString = ` (${ttft.toFixed(1)}s)`;
                 }
@@ -310,9 +310,9 @@ function initializeStreamingAI() {
                 rDiv.style.cssText = 'color: #ddd; font-size: 11px; line-height: 1.4; padding: 4px 8px; border-left: 2px solid rgba(100,255,150,0.4); border-radius: 2px; max-height: 200px; overflow-y: auto;';
                 // Build AI label with model and response time
                 let aiLabel = 'AI';
-                if (usedModel) aiLabel += ' (' + usedModel + ')';
+                if (usedModel) aiLabel += ' (' + usedModel.toUpperCase() + ')';
                 if (ttft > 0 && totalTime > 0) {
-                    aiLabel += ` [${ttft.toFixed(1)}s start / ${totalTime.toFixed(1)}s total]`;
+                    aiLabel += ` [${ttft.toFixed(1)}s START / ${totalTime.toFixed(1)}s TOTAL]`;
                 } else if (ttft > 0) {
                     aiLabel += ' [' + ttft.toFixed(1) + 's]';
                 }
