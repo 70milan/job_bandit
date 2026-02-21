@@ -30,9 +30,10 @@
 - **User Story 5.15:** As a user, I want all utility buttons (`[copy]` and `[clear]`) to share a unified, sleek monospace aesthetic that turns green or white upon clicking before fading back.
 - **User Story 1.5:** As a user, I want ChatGPT Nano to consistently wrap all generated code inside standard Markdown codeblocks instead of returning unformatted plaintext blocks.
 - **User Story 1.6:** As a user, I want the resume detach 'x' button to be properly hidden when a session ends so that the UI resets cleanly.
+- **User Story 1.8:** As a user, I want demo mode sessions to be restricted to once every 47 minutes to encourage purchasing a full license.
 
 ## Pending
 
 - **User Story 1.3:** As a user, I want to verify that when using screenshot capabilities, the system accurately logs the model and response time.
-- **User Story 2.2:** As a user, I want the ability to customize my "Target Role" so the AI doesn't assume I am always a "Data Engineer".
-- **User Story 1.7:** As a user, I want an input field during session creation to specify a default language (e.g., Python, SQL, Java) so that AI-generated code consistently uses my preferred language if the input doesnt specify the language to write code in.
+- **User Story 2.2: [STRETCH]** As a user, I want the ability to customize my session profile (e.g., Target Role, Default Programming Language) during session creation so the AI provides more tailored and language-consistent responses.
+- **User Story 3.1: [STRETCH]** As a developer, I want to obfuscate the application code and the final executable to protect intellectual property and prevent reverse-engineering.
