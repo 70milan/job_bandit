@@ -17,6 +17,10 @@
 - **User Story 5.6:** As a user, I want GPT-5 and higher reasoning models' code blocks to format correctly, not just GPT-4 models. *(Fixed regex to handle GPT-5 formatting variations.)*
 - **User Story 5.7:** As a user, I want date separators in convo/history to show date-only (MM/DD/YYYY) in the same white color as session names, with the time (HH:MM) shown inline next to each Input/Output label instead.
 - **User Story 5.8:** As a user, I want the "Model Used" badge in the AI response area to be right-aligned in the footer for a cleaner layout.
+- **User Story 5.9:** As a user, I want markdown formatting like bold text to be correctly parsed in the UI so code block language labels are clean.
+- **User Story 1.4:** As a user, I want unsupported models like ChatGPT-5 to be removed from the options to avoid connection errors.
+- **User Story 2.4:** As a user, I want the session status indicator to proactively test the connection, turning green immediately when connected and red if the backend is unreachable.
+- **User Story 5.10:** As a user, I want the "Model Used" indicator to look like a clean footprint signature fixed to the bottom-right of the AI response to track the model used inconspicuously.
 
 ## Pending
 
