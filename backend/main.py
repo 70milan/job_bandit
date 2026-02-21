@@ -38,8 +38,7 @@ PRICING = {
     "gpt-4o-mini": {"input": 0.60, "output": 2.40},
     "gpt-4o": {"input": 2.50, "output": 10.00},
     "gpt-5-nano": {"input": 0.30, "output": 1.20},
-    "gpt-5-mini": {"input": 1.50, "output": 6.00},
-    "gpt-5": {"input": 5.00, "output": 20.00}
+    "gpt-5-mini": {"input": 1.50, "output": 6.00}
 }
 
 # Available models for text-only responses (user can select)
@@ -48,8 +47,7 @@ AVAILABLE_TEXT_MODELS = {
     "gpt-4o-mini": {"name": "GPT-4o Mini", "speed": "Fast", "cost": "Cheap", "accuracy": "Better", "desc": "Balanced option"},
     "gpt-4o": {"name": "GPT-4o", "speed": "Medium", "cost": "Moderate", "accuracy": "Great", "desc": "Complex questions"},
     "gpt-5-nano": {"name": "GPT-5 Nano", "speed": "Fast", "cost": "Cheap", "accuracy": "Good", "desc": "Lightweight GPT-5"},
-    "gpt-5-mini": {"name": "GPT-5 Mini", "speed": "Medium", "cost": "Moderate", "accuracy": "Better", "desc": "Balanced GPT-5"},
-    "gpt-5": {"name": "GPT-5", "speed": "Slower", "cost": "Premium", "accuracy": "Best", "desc": "Maximum quality"}
+    "gpt-5-mini": {"name": "GPT-5 Mini", "speed": "Medium", "cost": "Moderate", "accuracy": "Better", "desc": "Balanced GPT-5"}
 }
 
 DEFAULT_TEXT_MODEL = "gpt-4o"
