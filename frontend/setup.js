@@ -817,8 +817,12 @@ window.openPastSession = async function (sessionName) {
                 }
 
                 const statusText = document.getElementById('status-text');
+                const statusDot = document.getElementById('status-dot');
                 if (statusText) {
                     statusText.innerText = 'Session Ready - Click Start';
+                }
+                if (statusDot) {
+                    statusDot.className = 'dot';
                 }
 
                 // Hide setup overlay and reset end button state
@@ -894,6 +898,8 @@ window.openPastSession = async function (sessionName) {
         console.error('Error loading past session:', e);
         status.innerText = 'Error loading session. Is backend running?';
         status.style.color = '#ff6b6b';
+        const statusDot = document.getElementById('status-dot');
+        if (statusDot) statusDot.className = 'dot error';
     }
 };
 
@@ -1137,7 +1143,7 @@ async function handleCreateSession() {
     }
 }
 
-function startSessionTimer() {
+async function startSessionTimer() {
     if (!sessionCreated) {
         customAlert('Create a session first!');
         return;
@@ -1148,9 +1154,22 @@ function startSessionTimer() {
     const stopBtn = document.getElementById('btn-session-stop');
     const endBtn = document.getElementById('btn-session-end');
     const statusText = document.getElementById('status-text');
+    const statusDot = document.getElementById('status-dot');
 
     if (timerInterval) {
         // Already running
+        return;
+    }
+
+    // Ping backend to ensure it's still alive before fully starting the session
+    try {
+        const pingRes = await fetch('http://127.0.0.1:5050/usage', { method: 'GET' });
+        if (!pingRes.ok) throw new Error("Backend offline");
+    } catch (e) {
+        console.error('Backend connection error when starting session:', e);
+        customAlert('Cannot connect to backend server. Make sure the Interview Assistant backend is running.');
+        if (statusText) statusText.innerText = 'Backend Error';
+        if (statusDot) statusDot.className = 'dot error';
         return;
     }
 
@@ -1163,6 +1182,7 @@ function startSessionTimer() {
     stopBtn.classList.remove('paused');
     if (endBtn) endBtn.classList.remove('ended');
     statusText.innerText = isLicensed ? 'Session Running' : 'Demo (5 mins)';
+    if (statusDot) statusDot.className = 'dot connected';
 
     timerInterval = setInterval(() => {
         const remaining = sessionEndTime - Date.now();
@@ -1189,6 +1209,7 @@ function startSessionTimer() {
             }
             stopBtn.classList.add('paused');
             startBtn.classList.remove('active');
+            if (statusDot) statusDot.className = 'dot';
             return;
         }
 
@@ -1232,6 +1253,7 @@ function stopSessionTimer() {
     const startBtn = document.getElementById('btn-session-start');
     const stopBtn = document.getElementById('btn-session-stop');
     const statusText = document.getElementById('status-text');
+    const statusDot = document.getElementById('status-dot');
 
     window.isSessionActive = false;
 
@@ -1244,6 +1266,7 @@ function stopSessionTimer() {
     startBtn.classList.remove('active');
     stopBtn.classList.add('paused');
     statusText.innerText = 'Session Paused';
+    if (statusDot) statusDot.className = 'dot';
 }
 
 async function endSession() {
@@ -1370,7 +1393,9 @@ async function endSession() {
 
         // Reset status text
         const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
         if (statusText) statusText.innerText = 'Ready';
+        if (statusDot) statusDot.className = 'dot';
 
         // Reset session state variables
         sessionCreated = false;
