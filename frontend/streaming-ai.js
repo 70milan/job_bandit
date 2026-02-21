@@ -33,6 +33,9 @@ window.formatConvoText = function (text) {
     // We parse basic bold **text** to <strong>text</strong> so asterisks don't show
     formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
+    // Remove markdown headings (e.g., ### Python: -> Python:)
+    formatted = formatted.replace(/^#{1,6}\s+/gm, '');
+
     // Newlines to <br>
     formatted = formatted.replace(/\n/g, '<br>');
 
@@ -233,6 +236,9 @@ function initializeStreamingAI() {
 
             // Handle Markdown bold **text**
             formattedResponse = formattedResponse.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+            // Remove markdown headings (e.g., ### Python: -> Python:)
+            formattedResponse = formattedResponse.replace(/^#{1,6}\s+/gm, '');
 
             formattedResponse = formattedResponse.replace(/\n/g, '<br>');
 
