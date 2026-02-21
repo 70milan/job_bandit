@@ -192,6 +192,9 @@ function initializeStreamingAI() {
                                         // Store model name for convo capture (badge added after formatting)
                                         const displayName = data.model;
                                         usedModel = displayName;
+
+                                        const modelEl = document.getElementById('response-time-model');
+                                        if (modelEl) modelEl.innerText = displayName;
                                     }
                                 }
                             }

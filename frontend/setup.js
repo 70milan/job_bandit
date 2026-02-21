@@ -1417,9 +1417,11 @@ function resetSessionUI() {
     if (statusDot) statusDot.className = 'dot';
 
     // Reset status bar metrics
+    const modelEl = document.getElementById('response-time-model');
     const ttftEl = document.getElementById('response-time-ttft');
     const ttEl = document.getElementById('response-time-tt');
-    const costEl = document.getElementById('session-cost');
+    const costEl = document.getElementById('api-cost');
+    if (modelEl) modelEl.innerText = '--';
     if (ttftEl) ttftEl.innerText = '--s';
     if (ttEl) ttEl.innerText = '--s';
     if (costEl) costEl.innerText = '$0.00';
@@ -1560,8 +1562,11 @@ updateHWIDDisplay();
                     </div>
                 </div>
 
-                <!-- Last TTFT & TT -->
+                <!-- Last Model & TTFT & TT -->
                 <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="color: rgba(255, 255, 255, 0.4);">Last Model Used:</span>
+                    <span id="response-time-model" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">--</span>
+                    <span style="color: rgba(255, 255, 255, 0.2); margin: 0 4px;">|</span>
                     <span style="color: rgba(255, 255, 255, 0.4);">Last TTFT:</span>
                     <span id="response-time-ttft" style="color: rgba(120, 200, 180, 0.85); font-weight: 500;">--s</span>
                     <span style="color: rgba(255, 255, 255, 0.2); margin: 0 4px;">|</span>
