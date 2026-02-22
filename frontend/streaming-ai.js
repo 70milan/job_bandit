@@ -77,7 +77,8 @@ function initializeStreamingAI() {
         try {
             const requestBody = {
                 transcript: transcript || 'Analyze this screenshot',
-                role: 'data engineer',
+                role: window.sessionTargetRole || '',
+                target_language: window.sessionTargetLanguage || '',
                 save_to_context: true,
                 text_model: window.selectedModel || 'gpt-3.5-turbo'
             };

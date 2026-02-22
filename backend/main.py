@@ -263,7 +263,8 @@ except ModuleNotFoundError:
 
 class AIRequest(BaseModel):
     transcript: str = ""
-    role: str = "data engineer"
+    role: str = ""
+    target_language: Optional[str] = None
     screenshot: Optional[str] = None
     job_description: Optional[str] = None
     save_to_context: Optional[bool] = True  # Set False for one-shot problems (LeetCode), True for scenarios needing follow-up
@@ -718,6 +719,8 @@ async def save_session_data(data: Dict[str, Any]):
             'session_name': session_name,
             'job_description': data.get('job_description', ''),
             'resume_text': data.get('resume_text', ''),
+            'target_role': data.get('target_role', ''),
+            'target_language': data.get('target_language', ''),
             'created_at': data.get('created_at', ''),
             'updated_at': str(Path('').resolve()),  # Will be updated on each save
             'text_model': data.get('text_model', DEFAULT_TEXT_MODEL)
@@ -846,6 +849,8 @@ async def list_sessions():
                     sessions.append({
                         'name': session_dir.name,
                         'created_at': data.get('created_at', ''),
+                        'target_role': data.get('target_role', ''),
+                        'target_language': data.get('target_language', ''),
                         'job_description_preview': data.get('job_description', '')[:100]
                     })
         
@@ -899,6 +904,8 @@ async def load_session(session_name: str):
             "session_name": session_name,
             "resume_text": data.get('resume_text', ''),
             "job_description": data.get('job_description', ''),
+            "target_role": data.get('target_role', ''),
+            "target_language": data.get('target_language', ''),
             "created_at": data.get('created_at', ''),
             "text_model": data.get('text_model', DEFAULT_TEXT_MODEL),
             "history": history
@@ -1062,7 +1069,7 @@ async def stream_ai_response(req: AIRequest):
                             "Use SIMPLE, clear words. Avoid complex vocabulary. Speak naturally like in a real conversation. "
                             "Explain your approach in 8-12 sentences. Write clean code with comments, then explain simply. "
                             "Draw from YOUR resume for all experience-related questions. "
-                            "Prefer SQL, PySpark, Pandas, Python based on the job. "
+                            f"Prefer {req.target_language or 'Python'} for all coding and technical explanations. "
                             "Remember what was discussed earlier."
                         )
                     }
@@ -1103,6 +1110,7 @@ async def stream_ai_response(req: AIRequest):
                     "Use SIMPLE, clear words. Speak naturally like in a real conversation. "
                     "Be confident but humble. Keep answers to 4-6 sentences. Give specific examples from YOUR resume. "
                     "Remember what was discussed earlier in this conversation. "
+                    f"Prefer {req.target_language or 'Python'} for all coding and technical explanations. "
                     "If you write ANY code, you MUST wrap it strictly inside standard Markdown content blocks specifying the exact language (e.g. ```python ... ```)."
                 )
 
@@ -1287,7 +1295,7 @@ async def generate_ai_response(req: AIRequest):
                         "Use SIMPLE, clear words. Avoid complex vocabulary. Speak naturally like in a real conversation. "
                         "Explain your approach in 8-12 sentences. Write clean code with comments, then explain simply. "
                         "Draw from YOUR resume for all experience-related questions. "
-                        "Prefer SQL, PySpark, Pandas, Python based on the job. "
+                        f"Prefer {req.target_language or 'Python'} for all coding and technical explanations. "
                         "Remember what was discussed earlier."
                     )
                 }
@@ -1324,7 +1332,8 @@ async def generate_ai_response(req: AIRequest):
                 "Speak in FIRST PERSON as yourself - a real human professional. "
                 "Use SIMPLE, clear words. Speak naturally like in a real conversation. "
                 "Be confident but humble. Keep answers to 4-6 sentences. Give specific examples from YOUR resume. "
-                "Remember what was discussed earlier in this conversation."
+                "Remember what was discussed earlier in this conversation. "
+                f"Prefer {req.target_language or 'Python'} for all coding and technical explanations."
             )
 
             messages = [

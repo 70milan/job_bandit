@@ -173,16 +173,20 @@ function checkAllInputs() {
     const sessionNameInput = document.getElementById('setup-session-name');
     const fileInput = document.getElementById('setup-resume');
     const apiKeyInput = document.getElementById('setup-apikey');
+    const roleInput = document.getElementById('setup-role');
+    const langInput = document.getElementById('setup-language');
     const jdInput = document.getElementById('setup-jobdesc');
     const startBtn = document.getElementById('btn-start-session');
 
     const hasSessionName = sessionNameInput && sessionNameInput.value.trim().length > 0;
     const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
     const hasApiKey = apiKeyInput && apiKeyInput.value.trim().length > 0;
+    const hasRole = roleInput && roleInput.value.trim().length > 0;
+    const hasLang = langInput && langInput.value.trim().length > 0;
     const hasJD = jdInput && jdInput.value.trim().length > 0;
 
     // Button is always clickable but style reflects readiness
-    if (hasSessionName && hasFile && hasApiKey && hasJD && startBtn) {
+    if (hasSessionName && hasFile && hasApiKey && hasRole && hasLang && hasJD && startBtn) {
         startBtn.style.opacity = '1';
     } else if (startBtn) {
         startBtn.style.opacity = '0.5';
@@ -309,6 +313,29 @@ function initSession() {
             checkAllInputs();
         });
     }
+
+    const roleInput = document.getElementById('setup-role');
+    if (roleInput) {
+        const savedRole = localStorage.getItem('target_role');
+        if (savedRole) roleInput.value = savedRole;
+        roleInput.addEventListener('input', () => {
+            const val = roleInput.value.trim();
+            if (val) localStorage.setItem('target_role', val);
+            checkAllInputs();
+        });
+    }
+
+    const langInput = document.getElementById('setup-language');
+    if (langInput) {
+        const savedLang = localStorage.getItem('target_language');
+        if (savedLang) langInput.value = savedLang;
+        langInput.addEventListener('input', () => {
+            const val = langInput.value.trim();
+            if (val) localStorage.setItem('target_language', val);
+            checkAllInputs();
+        });
+    }
+
     if (jdInput) {
         jdInput.addEventListener('input', checkAllInputs);
     }
@@ -448,7 +475,7 @@ function initSession() {
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.03)'">
                             <div style="flex: 1; cursor: pointer;" onclick="window.openPastSession('${session.name.replace(/'/g, "\\'")}')"> 
-                                <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-bottom: 4px;">${session.name}</div>
+                                <div style="color: rgba(255,255,255,0.8); font-size: 13px; margin-bottom: 4px;">${session.name} ${session.target_role ? `<span style="font-size: 11px; color: rgba(255,255,255,0.4);">(${session.target_role})</span>` : ''}</div>
                                 <div style="color: rgba(255,255,255,0.4); font-size: 10px;">${formattedDate}</div>
                                 <div style="color: rgba(255,255,255,0.3); font-size: 10px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${session.job_description_preview || ''}</div>
                             </div>
@@ -525,8 +552,23 @@ function initSession() {
                 return;
             }
 
+            let totalCost = 0;
+            Array.from(convoArea.children).forEach(child => {
+                totalCost += parseFloat(child.dataset.cost || 0);
+            });
+            let costText = '$0.00';
+            if (totalCost > 0) {
+                if (totalCost < 1.00) {
+                    costText = (totalCost * 100).toFixed(2) + '¢';
+                } else {
+                    costText = '$' + totalCost.toFixed(2);
+                }
+            }
+
             let exportText = `# Conversation Export: ${currentSessionName || 'Session'}\n`;
-            exportText += `**Exported At:** ${new Date().toLocaleString()}\n\n`;
+            exportText += `**Exported At:** ${new Date().toLocaleString()}\n`;
+            exportText += `**Target Role:** ${window.sessionTargetRole || 'Not Set'}\n`;
+            exportText += `**Cumulative API Cost:** ${costText}\n\n`;
             exportText += `---\n\n`;
 
             Array.from(convoArea.children).forEach(child => {
@@ -591,8 +633,9 @@ function initSession() {
             // Set title with session name
             if (modalTitle) {
                 const divider = '<span style="color: rgba(255,255,255,0.2); margin: 0 8px;">|</span>';
+                const roleText = window.sessionTargetRole ? divider + ' <span style="color: rgba(255,255,255,0.4);">' + window.sessionTargetRole + '</span>' : '';
                 modalTitle.innerHTML = currentSessionName
-                    ? 'Conversation ' + divider + ' <span style="color: rgba(255,255,255,0.6);">' + currentSessionName + '</span>'
+                    ? 'Conversation ' + divider + ' <span style="color: rgba(255,255,255,0.6);">' + currentSessionName + '</span>' + roleText
                     : 'Conversation So Far';
             }
 
@@ -787,7 +830,7 @@ window.openPastSession = async function (sessionName) {
         const historyList = document.getElementById('session-history-list');
         const historyTitle = document.getElementById('session-history-title');
 
-        if (historyTitle) historyTitle.textContent = `History — ${sessionName}`;
+        if (historyTitle) historyTitle.innerHTML = `History — ${sessionName} ${sessionData.target_role ? '<span style="color: rgba(255,255,255,0.4);">(' + sessionData.target_role + ')</span>' : ''}`;
         if (historyList) historyList.innerHTML = '';
 
         // Populate history entries
@@ -893,6 +936,8 @@ window.openPastSession = async function (sessionName) {
                 // Set session as active
                 currentSessionName = sessionName;
                 sessionCreated = true;
+                window.sessionTargetRole = sessionData.target_role || '';
+                window.sessionTargetLanguage = sessionData.target_language || '';
 
                 // Restore model preference
                 if (sessionData.text_model) {
@@ -1085,6 +1130,26 @@ async function handleCreateSession() {
         return;
     }
 
+    const roleInput = document.getElementById('setup-role');
+    const targetRole = roleInput ? roleInput.value.trim() : '';
+    if (!targetRole) {
+        showStatus('Target Role is required');
+        return;
+    }
+
+    const langInput = document.getElementById('setup-language');
+    const targetLang = langInput ? langInput.value.trim() : '';
+    if (!targetLang) {
+        showStatus('Target Language is required');
+        return;
+    }
+
+    // Save globals for this session
+    window.sessionTargetRole = targetRole;
+    window.sessionTargetLanguage = targetLang;
+    localStorage.setItem('target_role', targetRole);
+    localStorage.setItem('target_language', targetLang);
+
     if (!jdInput.value.trim()) {
         showStatus('Job Description is required');
         return;
@@ -1198,6 +1263,8 @@ async function handleCreateSession() {
             openai_api_key: apiKey,
             job_description: jdInput.value.trim(),
             resume_text: upJson.resume_text || '',
+            target_role: targetRole,
+            target_language: targetLang,
             created_at: new Date().toISOString()
         };
 
