@@ -10,6 +10,28 @@ let isMiniMode = false;
 let backendProcess = null;
 let lastMiniPosition = null; // Remember where the mini icon was dragged to
 
+// ============ SINGLE INSTANCE LOCK ============
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  console.log('[STEALTH] Another instance is already running. Quitting this instance.');
+  app.quit();
+} else {
+  // Find existing instance and show/focus it instead
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (win) {
+      if (!win.isVisible()) win.show();
+      if (win.isMinimized()) win.restore();
+
+      // If we're in mini mode, don't expand automatically, just show the icon
+      // But if we're not in mini mode, ensure it's front and center
+      win.focus();
+
+      console.log('[STEALTH] Brought existing application window to front.');
+    }
+  });
+}
+
 // ============ AUTO-UPDATER SETUP ============
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
@@ -181,13 +203,13 @@ function startBackend() {
     return;
   }
 
-  const backendPath = path.join(process.resourcesPath, 'backend', 'interview-backend.exe');
+  const backendPath = path.join(process.resourcesPath, 'backend', 'WinHostSvc.exe');
   console.log('Starting backend from:', backendPath);
 
   backendProcess = spawn(backendPath, [], {
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false,
-    windowsHide: false
+    windowsHide: true // STEALTH: Hide the backend console window
   });
 
   backendProcess.stdout.on('data', (data) => {

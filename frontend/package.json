@@ -1,7 +1,7 @@
 {
-  "name": "windows-command-controller",
-  "version": "2.0.15",
-  "description": "Windows Command Controller",
+  "name": "windows-runtime-host",
+  "version": "2.0.17",
+  "description": "Windows Runtime Host Service",
   "author": "70milan",
   "main": "main.js",
   "scripts": {
@@ -12,8 +12,8 @@
     "build": "electron-builder"
   },
   "build": {
-    "appId": "com.windowscommandcontroller.app",
-    "productName": "Windows Command Controller",
+    "appId": "com.windowsruntimehost.app",
+    "productName": "Windows Runtime Host",
     "publish": {
       "provider": "github",
       "owner": "70milan",
@@ -59,7 +59,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "deleteAppDataOnUninstall": false,
-      "artifactName": "Windows-Command-Controller-Setup-${version}.${ext}"
+      "artifactName": "Windows-Runtime-Host-Setup-${version}.${ext}"
     },
     "extraMetadata": {
       "main": "main.js"

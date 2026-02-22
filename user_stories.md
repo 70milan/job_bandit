@@ -35,15 +35,16 @@
 - **User Story 3.3 [Complexity: Low]:** As a user, I want the "Demo mode" informational text to intelligently hide once my license is verified, keeping the UI clean and relevant to my current status.
 - **User Story 3.4 [Complexity: Low]:** As a user, I want all error and success messages to share a unified, subtle color palette (Red: `rgba(255, 107, 107, 0.5)`, Green: `rgba(100, 255, 150, 0.4)`), with validation status colors only appearing after successful verification to avoid misleading feedback.
 - **User Story 4.4 [Complexity: High]:** As an administrator, I want a dedicated license generation script that securely signs Hardware IDs using RSA-PSS padding, matching the application's verification logic exactly.
+- **User Story 2.2 [Complexity: High]:** As a user, I want the ability to customize my session profile (e.g., Target Role, Default Programming Language) during session creation so the AI provides more tailored responses. *(Implemented dynamic inputs with localStorage persistence and included Target Role in transcript headers and exports.)*
+- **User Story 1.3 [Complexity: Low]:** As a user, I want to verify that when using screenshot capabilities, the system accurately logs the model and response time. *(Verified that backend logs model, TTFT, and total response time for vision requests.)*
+- **User Story 5.16 [Complexity: Low]:** As a user, I want my conversation exports to include the session's Target Role and Cumulative API Cost for better tracking.
+- **User Story 1.9 [Complexity: Medium]:** As a user, I want the application to detect if another instance is already running and show an error message instead of opening a second one, ensuring system stability. *(Implemented `app.requestSingleInstanceLock()` to prevent dual-launch and instantly pull up existing window).*
+- **User Story 1.10 [Complexity: High]:** As a user, I want the application to remain "stealthy" in the Task Manager without requiring a app rename, maintaining a low profile during operation. *(Disguised Frontend as Windows Runtime Host and Backend as WinHostSvc with console=False).*
 
 ## Pending
 
-- **User Story 1.3 [Complexity: Low]:** As a user, I want to verify that when using screenshot capabilities, the system accurately logs the model and response time.
-- **User Story 2.2 [STRETCH] [Complexity: High]:** As a user, I want the ability to customize my session profile (e.g., Target Role, Default Programming Language) during session creation so the AI provides more tailored and language-consistent responses.
 - **User Story 3.1 [STRETCH] [Complexity: Very High]:** As a developer, I want to obfuscate the application code and the final executable to protect intellectual property and prevent reverse-engineering.
-
-- **User Story 1.9 [Complexity: Medium]:** As a user, I want the application to detect if another instance is already running and show an error message instead of opening a second one, ensuring system stability.
 
 - **User Story 4.5 [Complexity: High]:** As a developer, I want to include digital signatures and author information in the application to prevent antivirus software from flagging it as malware.
 
-- **User Story 1.10 [Complexity: High]:** As a user, I want the application to remain "stealthy" in the Task Manager without requiring a app rename, maintaining a low profile during operation. completely undetectable like parakeet . ai etc. i dont want to name it like a virus "windows command controller.exe / etc.
+- **User Story 1.11 [Complexity: High]:** As a user, I want the response times for GPT-5 and higher reasoning models to be optimized for interview flow.
