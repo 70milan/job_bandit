@@ -457,8 +457,8 @@ function initSession() {
                 const data = await res.json();
 
                 if (data.sessions && data.sessions.length > 0) {
-                    // Show most recent sessions first
-                    const sorted = data.sessions.slice().reverse();
+                    // Backend already sorts sessions by newest first
+                    const sorted = data.sessions;
                     listContainer.innerHTML = sorted.map(session => {
                         // Format the timestamp nicely
                         let formattedDate = session.created_at || 'No date';

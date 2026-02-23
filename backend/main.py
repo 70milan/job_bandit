@@ -36,18 +36,14 @@ session_usage = {
 PRICING = {
     "gpt-3.5-turbo": {"input": 0.50, "output": 1.50},
     "gpt-4o-mini": {"input": 0.60, "output": 2.40},
-    "gpt-4o": {"input": 2.50, "output": 10.00},
-    "gpt-5-nano": {"input": 0.30, "output": 1.20},
-    "gpt-5-mini": {"input": 1.50, "output": 6.00}
+    "gpt-4o": {"input": 2.50, "output": 10.00}
 }
 
 # Available models for text-only responses (user can select)
 AVAILABLE_TEXT_MODELS = {
-    "gpt-3.5-turbo": {"name": "GPT-3.5 Turbo", "speed": "Fastest", "cost": "Cheapest", "accuracy": "Good", "desc": "Quick text answers"},
+    "gpt-3.5-turbo": {"name": "GPT-3.5", "speed": "Fastest", "cost": "Cheapest", "accuracy": "Good", "desc": "Quick text answers"},
     "gpt-4o-mini": {"name": "GPT-4o Mini", "speed": "Fast", "cost": "Cheap", "accuracy": "Better", "desc": "Balanced option"},
-    "gpt-4o": {"name": "GPT-4o", "speed": "Medium", "cost": "Moderate", "accuracy": "Great", "desc": "Complex questions"},
-    "gpt-5-nano": {"name": "GPT-5 Nano", "speed": "Fast", "cost": "Cheap", "accuracy": "Good", "desc": "Lightweight GPT-5"},
-    "gpt-5-mini": {"name": "GPT-5 Mini", "speed": "Medium", "cost": "Moderate", "accuracy": "Better", "desc": "Balanced GPT-5"}
+    "gpt-4o": {"name": "GPT-4o", "speed": "Medium", "cost": "Moderate", "accuracy": "Great", "desc": "Complex questions"}
 }
 
 DEFAULT_TEXT_MODEL = "gpt-4o"
@@ -853,6 +849,9 @@ async def list_sessions():
                         'target_language': data.get('target_language', ''),
                         'job_description_preview': data.get('job_description', '')[:100]
                     })
+        
+        # Sort sessions by created_at descending (newest first)
+        sessions.sort(key=lambda x: x.get('created_at', ''), reverse=True)
         
         return {"sessions": sessions}
     except Exception as e:

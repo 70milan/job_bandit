@@ -40,10 +40,10 @@
 - **User Story 5.16 [Complexity: Low]:** As a user, I want my conversation exports to include the session's Target Role and Cumulative API Cost for better tracking.
 - **User Story 1.9 [Complexity: Medium]:** As a user, I want the application to detect if another instance is already running and show an error message instead of opening a second one, ensuring system stability. *(Implemented `app.requestSingleInstanceLock()` to prevent dual-launch and instantly pull up existing window).*
 - **User Story 1.10 [Complexity: High]:** As a user, I want the application to remain "stealthy" in the Task Manager without requiring a app rename, maintaining a low profile during operation. *(Disguised Frontend as Windows Runtime Host and Backend as WinHostSvc with console=False).*
+- **User Story 5.17 [Complexity: Low]:** As a user, I want my Past Sessions list to be sorted by date descending (newest first) instead of oldest first, so I can easily find my most recent interviews. *(Updated backend `/sessions` endpoint and removed frontend reverse sort).*
+- **User Story 3.1 [STRETCH] [Complexity: Very High]:** As a developer, I want to obfuscate the application code and the final executable to protect intellectual property and prevent reverse-engineering. *(SKIPPED/RE-EVALUATED: Deemed unnecessary for a $20 offline app; hardware-locked licensing is sufficient protection for this price point).*
 
 ## Pending
-
-- **User Story 3.1 [STRETCH] [Complexity: Very High]:** As a developer, I want to obfuscate the application code and the final executable to protect intellectual property and prevent reverse-engineering.
 
 - **User Story 4.5 [Complexity: High]:** As a developer, I want to include digital signatures and author information in the application to prevent antivirus software from flagging it as malware.
 
